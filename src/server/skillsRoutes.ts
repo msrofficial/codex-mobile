@@ -761,12 +761,24 @@ async function ensurePrivateForkFromUpstream(token: string, username: string, re
     throw new Error(`Failed to check personal repo existence (${existing.status})`)
   }
 
-  await getGithubJson(
-    'https://api.github.com/user/repos',
-    token,
-    'POST',
-    { name: repoName, private: true, auto_init: false, description: 'Codex skills private mirror sync' },
-  )
+  const createRepo = await fetch('https://api.github.com/user/repos', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'codex-web-local',
+    },
+    body: JSON.stringify({ name: repoName, private: true, auto_init: false, description: 'Codex skills private mirror sync' }),
+  })
+  if (!createRepo.ok) {
+    const text = await createRepo.text()
+    if (createRepo.status === 403 && text.includes('Resource not accessible by integration')) {
+      throw new Error(`GitHub login cannot create the private ${repoName} sync repo with this token. Create an empty private repo named ${repoName} on GitHub, then retry Device Login, or use the regular GitHub login button with repo access.`)
+    }
+    throw new Error(`GitHub API POST https://api.github.com/user/repos failed (${createRepo.status}): ${text}`)
+  }
   created = true
 
   let ready = false

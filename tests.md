@@ -376,6 +376,35 @@ Skills Sync skips unchanged manifest writes and does not fail parent commits whe
 
 ---
 
+### Skills sync device login repo-create permission error
+
+#### Feature/Change Name
+Device Login shows an actionable message when GitHub rejects automatic private sync repo creation.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev --host 127.0.0.1 --port 5173`)
+2. GitHub account used for Device Login does not already have a `codexskills` repository
+3. GitHub returns `403 Resource not accessible by integration` for `POST /user/repos`
+4. Light theme and dark theme are available from the appearance switcher
+
+#### Steps
+1. In light theme, open `#/skills`.
+2. Click `Device Login`.
+3. Complete the GitHub device-code prompt.
+4. Wait for the sync panel to show the login failure.
+5. Confirm the error explains that the token cannot create the private `codexskills` repo and tells the user to create an empty private repo named `codexskills` or use regular GitHub login with repo access.
+6. Switch to dark theme and repeat steps 1 through 5.
+
+#### Expected Results
+- The raw `GitHub API POST https://api.github.com/user/repos failed (403)` payload is not shown as the primary error.
+- The user sees a clear recovery path for Device Login.
+- The error panel remains readable in light theme and dark theme.
+
+#### Rollback/Cleanup
+- Delete any test-only `codexskills` repository created during validation.
+
+---
+
 ### Header Git branch dropdown with commit reset
 
 #### Feature/Change Name
