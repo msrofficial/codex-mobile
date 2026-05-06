@@ -900,25 +900,23 @@ async function ensureSkillsWorkingTreeRepo(repoUrl: string, branch: string): Pro
     await runCommand('git', ['checkout', '-B', branch], { cwd: localDir })
   }
   await resolveMergeConflictsByNewerCommit(localDir, branch, localMtimesBeforeSync)
-  const hasLocalChangesBeforePull = await hasLocalUncommittedChanges(localDir)
-  const localMtimesBeforePull = hasLocalChangesBeforePull ? await snapshotFileMtimes(localDir) : new Map<string, number>()
-  let createdAutostash = false
-  try {
-    const stashOutput = await runCommandWithOutput('git', ['stash', 'push', '--include-untracked', '-m', 'codex-skills-autostash'], { cwd: localDir })
-    createdAutostash = !stashOutput.includes('No local changes to save')
-  } catch {}
-  let pulledMtimes = new Map<string, number>()
+  await checkpointLocalSkillsChanges(localDir)
   await runGitFetchWithRefLockRetry(localDir, ['fetch', 'origin', branch])
-  await runCommand('git', ['reset', '--hard', `origin/${branch}`], { cwd: localDir })
-  pulledMtimes = await snapshotFileMtimes(localDir)
-  if (createdAutostash) {
-    try {
-      await runCommand('git', ['stash', 'pop'], { cwd: localDir })
-    } catch {
-      await resolveStashPopConflictsByFileTime(localDir, localMtimesBeforePull, pulledMtimes)
-    }
+  try {
+    await runCommand('git', ['rebase', `origin/${branch}`], { cwd: localDir })
+  } catch {
+    await resolveMergeConflictsByNewerCommit(localDir, branch, localMtimesBeforeSync)
   }
   return localDir
+}
+
+async function checkpointLocalSkillsChanges(repoDir: string): Promise<void> {
+  await runCommand('git', ['add', '-A'], { cwd: repoDir })
+  try {
+    await runCommand('git', ['diff', '--cached', '--quiet', '--exit-code'], { cwd: repoDir })
+    return
+  } catch {}
+  await runCommand('git', ['commit', '-m', 'Local skills checkpoint before sync'], { cwd: repoDir })
 }
 
 async function resolveMergeConflictsByNewerCommit(
@@ -1016,29 +1014,6 @@ async function getCommitTime(repoDir: string, ref: string, path: string): Promis
   }
 }
 
-async function resolveStashPopConflictsByFileTime(
-  repoDir: string,
-  localMtimesBeforePull: Map<string, number>,
-  pulledMtimes: Map<string, number>,
-): Promise<void> {
-  const unmerged = (await runCommandWithOutput('git', ['diff', '--name-only', '--diff-filter=U'], { cwd: repoDir }))
-    .split(/\r?\n/)
-    .map((row) => row.trim())
-    .filter(Boolean)
-  if (unmerged.length === 0) return
-  for (const path of unmerged) {
-    const localMtime = localMtimesBeforePull.get(path) ?? 0
-    const pulledMtime = pulledMtimes.get(path) ?? 0
-    const side = localMtime >= pulledMtime ? '--theirs' : '--ours'
-    await checkoutConflictSideWithFallback(repoDir, path, side)
-    await runCommand('git', ['add', '--', path], { cwd: repoDir })
-  }
-  const mergeHead = await readOptionalGitRef(repoDir, 'MERGE_HEAD')
-  if (mergeHead) {
-    await runCommand('git', ['commit', '-m', 'Auto-resolve stash-pop conflicts by file time'], { cwd: repoDir })
-  }
-}
-
 async function snapshotFileMtimes(dir: string): Promise<Map<string, number>> {
   const mtimes = new Map<string, number>()
   await walkFileMtimes(dir, dir, mtimes)
@@ -1051,12 +1026,10 @@ async function hasLocalUncommittedChanges(repoDir: string): Promise<boolean> {
 }
 
 async function hasCommittableWorkingTreeChanges(repoDir: string): Promise<boolean> {
-  try {
-    await runCommand('git', ['diff', '--quiet', '--exit-code', '--ignore-submodules=dirty'], { cwd: repoDir })
-    await runCommand('git', ['diff', '--cached', '--quiet', '--exit-code', '--ignore-submodules=dirty'], { cwd: repoDir })
-  } catch {
-    return true
-  }
+  const unstaged = (await runCommandWithOutput('git', ['diff', '--name-only', '--ignore-submodules=dirty'], { cwd: repoDir })).trim()
+  if (unstaged.length > 0) return true
+  const staged = (await runCommandWithOutput('git', ['diff', '--cached', '--name-only', '--ignore-submodules=dirty'], { cwd: repoDir })).trim()
+  if (staged.length > 0) return true
   const untracked = (await runCommandWithOutput('git', ['ls-files', '--others', '--exclude-standard'], { cwd: repoDir })).trim()
   return untracked.length > 0
 }
@@ -1178,10 +1151,19 @@ async function syncInstalledSkillsFolderToRepo(
   await runCommand('git', ['config', 'user.name', 'Skills Sync'], { cwd: repoDir })
   await restoreProtectedFilesFromOrigin(repoDir, branch)
   await runCommand('git', ['add', '.'], { cwd: repoDir })
+  let hasStagedChanges = true
   try {
     await runCommand('git', ['diff', '--cached', '--quiet', '--exit-code'], { cwd: repoDir })
-    return
+    hasStagedChanges = false
   } catch {}
+  if (!hasStagedChanges) {
+    const head = (await runCommandWithOutput('git', ['rev-parse', 'HEAD'], { cwd: repoDir })).trim()
+    const originHead = (await runCommandWithOutput('git', ['rev-parse', `origin/${branch}`], { cwd: repoDir })).trim()
+    if (head !== originHead) {
+      await pushWithNonFastForwardRetry(repoDir, branch)
+    }
+    return
+  }
   await runCommand('git', ['commit', '-m', 'Sync installed skills folder and manifest'], { cwd: repoDir })
   await pushWithNonFastForwardRetry(repoDir, branch)
 }

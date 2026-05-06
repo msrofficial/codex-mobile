@@ -376,6 +376,39 @@ Skills Sync skips unchanged manifest writes and does not fail parent commits whe
 
 ---
 
+### Skills sync checkpoints local changes before remote reconcile
+
+#### Feature/Change Name
+Skills Sync commits local skills edits before pulling remote updates and rebases instead of using `reset --hard`.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev --host 127.0.0.1 --port 5173`)
+2. GitHub Skills Sync is configured and connected
+3. `/Users/igor/.codex/skills` has a local tracked edit and an untracked local skill folder
+4. Remote `main` has at least one newer commit than local
+5. Light theme and dark theme are available from the appearance switcher
+
+#### Steps
+1. In light theme, open `#/skills`.
+2. Create or edit a local skill under `/Users/igor/.codex/skills`.
+3. Confirm the local skills repo shows uncommitted changes.
+4. Click `Pull` or `Startup Sync`.
+5. Inspect `/Users/igor/.codex/skills` Git history.
+6. Confirm a `Local skills checkpoint before sync` commit exists before the remote reconcile.
+7. Confirm the branch rebased onto `origin/main` and no `reset --hard origin/main` path was used.
+8. Switch to dark theme and repeat steps 1 through 4.
+
+#### Expected Results
+- Local tracked and untracked skill edits become normal Git commits before remote reconciliation.
+- Sync history shows the local checkpoint commit and remote commits instead of hiding local files in `refs/stash`.
+- Remote updates are applied by rebase/merge-conflict resolution rather than by destructive hard reset.
+- Skills Sync status and errors remain readable in light theme and dark theme.
+
+#### Rollback/Cleanup
+- Revert or reset any test-only skills repo commits after validation if they should not be kept.
+
+---
+
 ### Header Git branch dropdown with commit reset
 
 #### Feature/Change Name
