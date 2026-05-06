@@ -344,10 +344,10 @@ The accidental `npx run dev` command starts the repository dev wrapper instead o
 
 ---
 
-### Skills sync idempotent commits and nested shared skills handling
+### Skills sync generic file sync and nested shared skills handling
 
 #### Feature/Change Name
-Skills Sync skips unchanged manifest writes and does not fail parent commits when only nested `shared_skills` content is dirty.
+Skills Sync uses the Git repository contents as the sync source of truth and does not fail parent commits when only nested `shared_skills` content is dirty.
 
 #### Prerequisites/Setup
 1. Dev server running (`pnpm run dev --host 127.0.0.1 --port 5173`)
@@ -357,16 +357,22 @@ Skills Sync skips unchanged manifest writes and does not fail parent commits whe
 
 #### Steps
 1. In light theme, open `#/skills`.
-2. Click `Startup Sync` when no installed skills manifest content has changed.
-3. Confirm the sync completes without adding a new `Update synced skills manifest` commit to the GitHub repo.
-4. Modify a file inside `/Users/igor/.codex/skills/shared_skills` without committing it inside that nested repository.
-5. Click `Push` or `Startup Sync` again.
-6. Confirm the sync does not show `Command failed (git commit -m Sync installed skills folder and manifest)` for the parent `/Users/igor/.codex/skills` repository.
-7. Confirm the startup auto-push path skips when the only local status is dirty nested `shared_skills` content and local `HEAD` equals `origin/main`.
-8. Switch to dark theme and repeat steps 1, 2, and 5.
+2. Click `Startup Sync` when the skills repo already matches `origin/main`.
+3. Confirm the sync completes without adding a new manifest-only commit to the GitHub repo.
+4. Create a local skill folder that is not listed in `installed-skills.json`.
+5. Click `Push` and confirm the skill folder is committed and pushed as normal repository content.
+6. Delete a skill folder remotely and click `Pull`.
+7. Confirm the local folder removal follows the Git remote commit, not an `installed-skills.json` membership check.
+8. Modify a file inside `/Users/igor/.codex/skills/shared_skills` without committing it inside that nested repository.
+9. Click `Push` or `Startup Sync` again.
+10. Confirm the sync does not show `Command failed (git commit -m Sync installed skills folder and manifest)` for the parent `/Users/igor/.codex/skills` repository.
+11. Confirm the startup auto-push path skips when the only local status is dirty nested `shared_skills` content and local `HEAD` equals `origin/main`.
+12. Switch to dark theme and repeat steps 1, 2, and 9.
 
 #### Expected Results
-- Unchanged `installed-skills.json` content is not written back to GitHub, so repeated empty-looking manifest commits are not created.
+- Skills folders and files sync by normal Git commits, independent of `installed-skills.json`.
+- Pull does not delete local skills solely because a manifest entry is missing.
+- Push does not write `installed-skills.json` through the GitHub Contents API.
 - A dirty nested `shared_skills` repository does not make the parent skills sync fail with `no changes added to commit`.
 - Dirty nested `shared_skills` content alone does not keep triggering no-op startup push work.
 - Skills Sync status, errors, and action buttons remain readable in light theme and dark theme.
