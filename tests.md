@@ -295,6 +295,8 @@ Free-mode provider status seeds the provider-scoped composer model so switching 
 
 #### Expected Results
 - Switching from OpenRouter to OpenCode Zen never leaves the composer model dropdown on the `Model` placeholder after provider status loads.
+- Existing per-thread/provider model selections are not overwritten by the provider's new-thread default when switching providers.
+- A stalled or failing `/codex-api/free-mode/status` request is bounded and falls back without blocking startup/model refresh indefinitely.
 - OpenRouter sends `openrouter/free` for the tested thread.
 - OpenCode Zen sends `big-pickle` for both tested threads.
 - The model dropdown remains readable and usable in light and dark themes.

@@ -3694,8 +3694,9 @@ async function onProviderChange(provider: string): Promise<void> {
       'Provider refresh',
     )
     if (activeThreadIdBeforeProviderChange) {
+      const existingThreadModelId = readModelIdForThread(activeThreadIdBeforeProviderChange).trim()
       const providerModelId = readModelIdForThread('__new-thread__').trim() || selectedModelId.value.trim()
-      if (providerModelId) {
+      if (!existingThreadModelId && providerModelId) {
         setSelectedModelIdForThread(activeThreadIdBeforeProviderChange, providerModelId)
       }
       await restoreThreadRouteAfterProviderChange(activeThreadIdBeforeProviderChange)

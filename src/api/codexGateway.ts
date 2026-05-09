@@ -249,6 +249,7 @@ type ProviderModelsResponse = {
 }
 
 const PROVIDER_MODELS_FETCH_TIMEOUT_MS = 5_000
+const FREE_MODE_STATUS_FETCH_TIMEOUT_MS = 8_000
 
 type ResolvedCollaborationModeSettings = {
   model: string
@@ -1715,7 +1716,12 @@ export interface FreeModeStatus {
 }
 
 export async function getFreeModeStatus(): Promise<FreeModeStatus> {
-  const response = await fetch('/codex-api/free-mode/status')
+  const response = await fetch('/codex-api/free-mode/status', {
+    signal: AbortSignal.timeout(FREE_MODE_STATUS_FETCH_TIMEOUT_MS),
+  })
+  if (!response.ok) {
+    throw new Error(`Free-mode status request failed with ${response.status}`)
+  }
   return await response.json() as FreeModeStatus
 }
 
