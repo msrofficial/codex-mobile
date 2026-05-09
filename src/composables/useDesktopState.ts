@@ -1904,6 +1904,7 @@ export function useDesktopState() {
       activeProviderId.value = normalizedProviderId
       if (options?.providerChanged) {
         resumedThreadById.value = {}
+        loadedMessagesByThreadId.value = {}
       }
       const normalizedSelectedModelId = readModelIdForThread(selectedThreadId.value)
       selectedModelId.value = normalizedSelectedModelId

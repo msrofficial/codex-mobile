@@ -294,6 +294,7 @@ The composer model dropdown loads provider-specific models during normal backgro
 - Normal page load fetches provider models for the active provider.
 - The dropdown is not limited to stale Codex RPC model results plus `big-pickle`.
 - The built-in OpenCode Zen provider shows only no-key-compatible/default models, even if a key is saved locally.
+- Startup uses enabled free-mode provider/model status instead of stale Codex `config/read` model values.
 - Model dropdown remains usable in light and dark themes.
 
 #### Rollback/Cleanup

@@ -728,6 +728,61 @@ describe('model selection', () => {
     )
   })
 
+  it('reloads selected thread messages after switching providers even when previously loaded', async () => {
+    installTestWindow({
+      'codex-web-local.selected-thread-id.v1': 'thread-a',
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({
+      groups: [
+        {
+          projectName: 'project',
+          threads: [thread('thread-a', '/tmp/project')],
+        },
+      ],
+      nextCursor: null,
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue(['gpt-5.5'])
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'gpt-5.5',
+      providerId: 'openai',
+      reasoningEffort: 'high',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAccountRateLimits.mockResolvedValue([])
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+    gatewayMocks.resumeThread.mockResolvedValue({
+      model: 'gpt-5.5',
+      messages: [],
+      inProgress: false,
+      activeTurnId: '',
+      turnIndexByTurnId: {},
+    })
+
+    const state = useDesktopState()
+
+    await state.refreshAll({ includeSelectedThreadMessages: true, awaitAncillaryRefreshes: true })
+    expect(gatewayMocks.resumeThread).toHaveBeenCalledTimes(1)
+
+    gatewayMocks.resumeThread.mockClear()
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'big-pickle',
+      providerId: 'opencode-zen',
+      reasoningEffort: 'high',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue(['big-pickle'])
+
+    await state.refreshAll({
+      includeSelectedThreadMessages: false,
+      awaitAncillaryRefreshes: true,
+      providerChanged: true,
+    })
+    await state.ensureThreadMessagesLoaded('thread-a')
+
+    expect(gatewayMocks.resumeThread).toHaveBeenCalledWith('thread-a')
+  })
+
   it('previews provider-scoped model selection before provider refresh completes', async () => {
     installTestWindow({
       'codex-web-local.selected-thread-id.v1': 'thread-a',

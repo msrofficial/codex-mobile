@@ -1803,16 +1803,14 @@ export async function getCurrentModelConfig(): Promise<CurrentModelConfig> {
   let providerId = typeof payload.config.model_provider === 'string' ? payload.config.model_provider : ''
   const reasoningEffort = normalizeReasoningEffort(payload.config.model_reasoning_effort)
   const speedMode = normalizeSpeedMode(payload.config.service_tier)
-  if (!model || !providerId) {
-    try {
-      const freeModeStatus = await getFreeModeStatus()
-      if (freeModeStatus.enabled) {
-        if (!model) model = freeModeStatus.currentModel ?? ''
-        if (!providerId) providerId = freeModeStatus.provider ?? ''
-      }
-    } catch {
-      // Keep the app usable when free-mode status is unavailable.
+  try {
+    const freeModeStatus = await getFreeModeStatus()
+    if (freeModeStatus.enabled) {
+      model = freeModeStatus.currentModel ?? model
+      providerId = freeModeStatus.provider ?? providerId
     }
+  } catch {
+    // Keep the app usable when free-mode status is unavailable.
   }
   return { model, providerId, reasoningEffort, speedMode }
 }

@@ -1789,7 +1789,7 @@ onMounted(() => {
   void refreshDefaultProjectName()
   void refreshTelegramConfig()
   void refreshTelegramStatus()
-  void loadFreeModeStatus()
+  void loadInitialFreeModeStatus()
   void refreshThreadTerminalStatus()
   void refreshTerminalQuickCommands()
 })
@@ -3820,6 +3820,16 @@ async function loadFreeModeStatus(): Promise<void> {
   } catch {
     // Ignore — free mode status unknown
   }
+}
+
+async function loadInitialFreeModeStatus(): Promise<void> {
+  await loadFreeModeStatus()
+  if (selectedProvider.value === 'codex') return
+  await refreshAll({
+    includeSelectedThreadMessages: false,
+    providerChanged: true,
+    awaitAncillaryRefreshes: true,
+  })
 }
 
 function onDictationLanguageChange(nextValue: string): void {
