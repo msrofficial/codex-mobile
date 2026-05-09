@@ -271,6 +271,34 @@ This file tracks manual regression and feature verification steps.
 
 ---
 
+### Provider model list loads on normal refresh
+
+#### Feature/Change Name
+The composer model dropdown loads provider-specific models during normal background refresh, not only after explicit provider switches.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev`)
+2. Provider set to `OpenCode Zen`
+3. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. In light theme, open an existing thread while `OpenCode Zen` is selected.
+2. Refresh the browser tab and wait for the model control to finish loading.
+3. Confirm the selected model is `big-pickle`.
+4. Open the model dropdown.
+5. Confirm Zen models such as `big-pickle`, `minimax-m2.5-free`, and other `*-free` entries can be found in the dropdown search.
+6. Switch to dark theme and repeat steps 1-5.
+
+#### Expected Results
+- Normal page load fetches provider models for the active provider.
+- The dropdown is not limited to stale Codex RPC model results plus `big-pickle`.
+- Model dropdown remains usable in light and dark themes.
+
+#### Rollback/Cleanup
+- Switch Provider/model settings back to preferred defaults if needed.
+
+---
+
 ### Qodo review fixes: automation dropdown dark theme and bridge startup ordering
 
 #### Feature/Change Name

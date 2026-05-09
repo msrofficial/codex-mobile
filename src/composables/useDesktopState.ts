@@ -4391,7 +4391,7 @@ export function useDesktopState() {
       } else {
         scheduleAncillaryStateRefresh({
           providerChanged: options.providerChanged,
-          includeProviderModels: false,
+          includeProviderModels: true,
         })
       }
     } catch (unknownError) {
