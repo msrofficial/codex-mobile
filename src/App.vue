@@ -230,17 +230,15 @@
 
               <div class="sidebar-settings-row sidebar-settings-row--select" :title="t('Choose the API provider for the Codex backend')">
                 <span class="sidebar-settings-label">{{ t('Provider') }}</span>
-                <select
-                  class="sidebar-settings-provider-select"
-                  :value="selectedProvider"
+                <ComposerDropdown
+                  class="sidebar-settings-provider-dropdown"
+                  :model-value="selectedProvider"
+                  :options="providerOptions"
                   :disabled="freeModeLoading"
-                  @change="onProviderChange(($event.target as HTMLSelectElement).value)"
-                >
-                  <option value="codex">Codex</option>
-                  <option value="openrouter">OpenRouter</option>
-                  <option value="opencode-zen">OpenCode Zen</option>
-                  <option value="custom">Custom endpoint</option>
-                </select>
+                  :placeholder="t('Provider')"
+                  open-direction="up"
+                  @update:model-value="onProviderChange"
+                />
               </div>
               <div v-if="providerError" class="sidebar-settings-row sidebar-settings-error">
                 {{ providerError }}
@@ -1343,6 +1341,12 @@ const freeModeCustomKeyMasked = ref<string | null>(null)
 const freeModeCustomKeySaving = ref(false)
 const providerError = ref('')
 const selectedProvider = ref<'codex' | 'openrouter' | 'opencode-zen' | 'custom'>('codex')
+const providerOptions = computed(() => [
+  { value: 'codex', label: 'Codex' },
+  { value: 'openrouter', label: 'OpenRouter' },
+  { value: 'opencode-zen', label: 'OpenCode Zen' },
+  { value: 'custom', label: t('Custom endpoint') },
+])
 const customEndpointUrl = ref('')
 const customEndpointKey = ref('')
 const customEndpointWireApi = ref<'responses' | 'chat'>('responses')
@@ -5098,6 +5102,26 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
   @apply border-zinc-400 ring-2 ring-zinc-200;
 }
 
+.sidebar-settings-provider-dropdown {
+  @apply min-w-0 max-w-40;
+}
+
+.sidebar-settings-provider-dropdown :deep(.composer-dropdown-trigger) {
+  @apply h-auto rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700;
+}
+
+.sidebar-settings-provider-dropdown :deep(.composer-dropdown-value) {
+  @apply max-w-32;
+}
+
+.sidebar-settings-provider-dropdown :deep(.composer-dropdown-menu-wrap) {
+  @apply left-auto right-0;
+}
+
+.sidebar-settings-provider-dropdown :deep(.composer-dropdown-trigger:focus-visible) {
+  @apply border-zinc-400 ring-2 ring-zinc-200;
+}
+
 .sidebar-settings-segmented {
   @apply inline-flex items-center rounded-md border border-zinc-200 bg-white p-0.5;
 }
@@ -5123,6 +5147,14 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
 }
 
 :root.dark .sidebar-settings-provider-select:focus {
+  @apply border-zinc-500 ring-zinc-700;
+}
+
+:root.dark .sidebar-settings-provider-dropdown :deep(.composer-dropdown-trigger) {
+  @apply border-zinc-600 bg-zinc-800 text-zinc-200;
+}
+
+:root.dark .sidebar-settings-provider-dropdown :deep(.composer-dropdown-trigger:focus-visible) {
   @apply border-zinc-500 ring-zinc-700;
 }
 
