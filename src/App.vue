@@ -398,6 +398,23 @@
                   @update:model-value="onDictationLanguageChange"
                 />
               </div>
+              <button
+                class="sidebar-settings-row"
+                type="button"
+                :disabled="browserNotificationPermission === 'unsupported' || browserNotificationPermission === 'denied'"
+                :title="browserNotificationHelpText"
+                @click="onToggleBrowserNotifications"
+              >
+                <span class="sidebar-settings-label">{{ t('Browser notifications') }}</span>
+                <span class="sidebar-settings-notification-control">
+                  <span v-if="browserNotificationStatusText" class="sidebar-settings-value">{{ browserNotificationStatusText }}</span>
+                  <span
+                    class="sidebar-settings-toggle"
+                    :class="{ 'is-on': browserNotificationsEnabled }"
+                    aria-hidden="true"
+                  />
+                </span>
+              </button>
               <button class="sidebar-settings-row" type="button" aria-live="polite" @click="isTelegramConfigOpen = !isTelegramConfigOpen">
                 <span class="sidebar-settings-label">{{ t('Telegram') }}</span>
                 <span class="sidebar-settings-value">{{ telegramStatusText }}</span>
@@ -1199,6 +1216,8 @@ const {
   selectedModelId,
   selectedReasoningEffort,
   selectedSpeedMode,
+  browserNotificationsEnabled,
+  browserNotificationPermission,
   installedSkills,
   accountRateLimitSnapshots,
   messages,
@@ -1231,6 +1250,8 @@ const {
 
   setSelectedReasoningEffort,
   updateSelectedSpeedMode,
+  setBrowserNotificationsEnabled,
+  refreshBrowserNotificationPermission,
   respondToPendingServerRequest,
   renameProject,
   removeProject,
@@ -1768,8 +1789,22 @@ const telegramStatusText = computed(() => {
   const error = telegramStatus.value.lastError ? `, ${t('error')}: ${telegramStatus.value.lastError}` : ''
   return `${base}, ${mapped}${error}`
 })
+const browserNotificationStatusText = computed(() => {
+  if (browserNotificationPermission.value === 'unsupported') return t('Unsupported')
+  if (browserNotificationPermission.value === 'denied') return t('Blocked')
+  if (browserNotificationsEnabled.value) return t('On')
+  return ''
+})
+const browserNotificationHelpText = computed(() => {
+  if (browserNotificationPermission.value === 'unsupported') return t('This browser does not support notifications.')
+  if (browserNotificationPermission.value === 'denied') return t('Notifications are blocked in browser settings.')
+  return browserNotificationsEnabled.value
+    ? t('Notify when background thread tasks finish or need action.')
+    : t('Enable notifications for completed tasks and pending chat actions.')
+})
 
 onMounted(() => {
+  refreshBrowserNotificationPermission()
   document.addEventListener('pointerdown', onDocumentPointerDown)
   window.addEventListener('keydown', onWindowKeyDown)
   document.addEventListener('visibilitychange', onDocumentVisibilityChange)
@@ -2760,6 +2795,7 @@ function onSettingsAreaClick(event: MouseEvent): void {
 
 function onDocumentVisibilityChange(): void {
   if (typeof document === 'undefined') return
+  refreshBrowserNotificationPermission()
   if (!isMobile.value) return
 
   if (document.visibilityState === 'hidden') {
@@ -2777,6 +2813,7 @@ function onWindowPageShow(event: PageTransitionEvent): void {
 }
 
 function onWindowFocus(): void {
+  refreshBrowserNotificationPermission()
   if (route.name === 'home') {
     void loadWorkspaceRootOptionsState()
     void refreshDefaultProjectName()
@@ -3756,6 +3793,10 @@ function onDictationLanguageChange(nextValue: string): void {
   const value = normalized || 'auto'
   dictationLanguage.value = value
   window.localStorage.setItem(DICTATION_LANGUAGE_KEY, value)
+}
+
+function onToggleBrowserNotifications(): void {
+  void setBrowserNotificationsEnabled(!browserNotificationsEnabled.value)
 }
 
 function loadDictationLanguagePref(): string {
@@ -5046,6 +5087,13 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
   @apply text-xs text-zinc-500 bg-zinc-100 rounded px-1.5 py-0.5;
 }
 
+.sidebar-settings-notification-control {
+  @apply inline-flex items-center gap-2;
+}
+
+.sidebar-settings-row:disabled {
+  @apply cursor-not-allowed opacity-70;
+}
 
 .sidebar-settings-toggle {
   @apply relative w-9 h-5 rounded-full bg-zinc-300 transition-colors shrink-0;
