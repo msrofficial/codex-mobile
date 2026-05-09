@@ -560,7 +560,7 @@ describe('model selection', () => {
     expect(state.readModelIdForThread('thread-a')).toBe('big-pickle')
   })
 
-  it('keeps existing thread model empty without a provider-scoped thread model', async () => {
+  it('shows the active provider default when selecting a thread without a provider-scoped model', async () => {
     installTestWindow({
       'codex-web-local.selected-thread-id.v1': 'thread-a',
       'codex-web-local.selected-model-by-context.v1': JSON.stringify({
@@ -597,8 +597,74 @@ describe('model selection', () => {
     await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
     state.primeSelectedThread('thread-b')
 
-    expect(state.selectedModelId.value).toBe('')
+    expect(state.selectedModelId.value).toBe('big-pickle')
     expect(state.readModelIdForThread('thread-b')).toBe('')
+  })
+
+  it('does not save a resumed thread model under the active provider while switching chats', async () => {
+    installTestWindow({
+      'codex-web-local.selected-thread-id.v1': 'thread-a',
+      'codex-web-local.selected-model-by-context.v1': JSON.stringify({
+        '__new-thread-provider__::openrouter': 'openrouter/free',
+      }),
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({
+      groups: [
+        {
+          projectName: 'project',
+          threads: [
+            thread('thread-a', '/tmp/project'),
+            thread('thread-b', '/tmp/project'),
+          ],
+        },
+      ],
+      nextCursor: null,
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue(['openrouter/free'])
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'openrouter/free',
+      providerId: 'openrouter',
+      reasoningEffort: 'high',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAccountRateLimits.mockResolvedValue([])
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+    gatewayMocks.resumeThread.mockResolvedValue({
+      model: 'big-pickle',
+      messages: [],
+      inProgress: false,
+      activeTurnId: '',
+      turnIndexByTurnId: {},
+    })
+    gatewayMocks.startThreadTurn.mockResolvedValue('turn-1')
+
+    const state = useDesktopState()
+
+    await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
+    state.primeSelectedThread('thread-b')
+    await state.ensureThreadMessagesLoaded('thread-b')
+
+    expect(state.selectedModelId.value).toBe('openrouter/free')
+    expect(state.readModelIdForThread('thread-b')).toBe('')
+    expect(state.availableModelIds.value).toEqual(['openrouter/free'])
+    expect(window.localStorage.setItem).not.toHaveBeenCalledWith(
+      'codex-web-local.selected-model-by-context.v1',
+      expect.stringContaining('__thread-provider__::openrouter::thread-b'),
+    )
+
+    await state.sendMessageToSelectedThread('hi')
+
+    expect(gatewayMocks.startThreadTurn).toHaveBeenCalledWith(
+      'thread-b',
+      'hi',
+      [],
+      'openrouter/free',
+      'high',
+      undefined,
+      [],
+      'default',
+    )
   })
 
   it('accepts gpt-prefixed model ids saved under a custom provider thread key', async () => {

@@ -386,11 +386,15 @@ Model selection is saved per existing thread and per active provider, so switchi
 5. Select a Zen model such as `big-pickle`.
 6. Switch Provider back to `Codex`.
 7. Confirm the same thread's model dropdown restores the Codex model instead of keeping the Zen model.
-8. Switch to dark theme and repeat steps 1-7.
+8. Switch Provider to `OpenRouter`.
+9. Select a Zen-created thread and confirm the composer model remains an OpenRouter model such as `openrouter/free`, not `big-pickle`.
+10. Switch to dark theme and repeat steps 1-9.
 
 #### Expected Results
 - Existing thread model selections are keyed by thread and provider.
 - Existing threads without a saved model for the active provider do not use a legacy thread/default localStorage fallback.
+- Existing threads without a saved model for the active provider show the active provider's current/default model in the composer.
+- Loading a thread whose persisted backend model belongs to another provider does not save that model under the active provider.
 - Provider-scoped model ids are accepted as-is for the active provider.
 - The Codex provider model dropdown shows only Codex models and does not include stale provider models such as `big-pickle`.
 - New-thread provider-scoped model behavior remains unchanged.

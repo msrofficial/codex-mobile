@@ -1562,17 +1562,24 @@ export function useDesktopState() {
   function readModelIdForThread(threadId: string): string {
     const contextId = toThreadContextId(threadId)
     if (contextId === NEW_THREAD_COLLABORATION_MODE_CONTEXT) {
-      const providerContextId = toProviderModelContextId(activeProviderId.value)
-      const providerModelId = providerContextId
-        ? normalizeStoredModelId(selectedModelIdByContext.value[providerContextId])
-        : ''
-      return providerModelId
+      return readProviderModelId()
     }
 
     const providerThreadContextId = toThreadProviderModelContextId(contextId, activeProviderId.value)
     return providerThreadContextId
       ? normalizeStoredModelId(selectedModelIdByContext.value[providerThreadContextId])
       : ''
+  }
+
+  function readProviderModelId(): string {
+    const providerContextId = toProviderModelContextId(activeProviderId.value)
+    return providerContextId
+      ? normalizeStoredModelId(selectedModelIdByContext.value[providerContextId])
+      : ''
+  }
+
+  function readModelIdForActiveThreadSelection(threadId: string): string {
+    return readModelIdForThread(threadId) || readProviderModelId()
   }
 
   function ensureAvailableModelIds(...modelIds: string[]): void {
@@ -1592,7 +1599,7 @@ export function useDesktopState() {
     if (selectedThreadId.value === nextThreadId) return
     selectedThreadId.value = nextThreadId
     saveSelectedThreadId(nextThreadId)
-    selectedModelId.value = readModelIdForThread(nextThreadId)
+    selectedModelId.value = readModelIdForActiveThreadSelection(nextThreadId)
     ensureAvailableModelIds(selectedModelId.value)
     selectedCollaborationMode.value = readSelectedCollaborationMode(
       selectedCollaborationModeByContext.value,
@@ -1604,7 +1611,7 @@ export function useDesktopState() {
 
   function previewProviderModelSelection(providerId: string): void {
     activeProviderId.value = normalizeProviderContextId(providerId)
-    const nextSelectedModelId = readModelIdForThread(selectedThreadId.value).trim()
+    const nextSelectedModelId = readModelIdForActiveThreadSelection(selectedThreadId.value).trim()
     selectedModelId.value = nextSelectedModelId
     availableModelIds.value = nextSelectedModelId ? [nextSelectedModelId] : []
   }
@@ -1625,7 +1632,7 @@ export function useDesktopState() {
       selectedModelIdByContext.value = omitStringKeyedRecordKey(selectedModelIdByContext.value, primaryContextId)
     }
     if (threadId.trim() === selectedThreadId.value) {
-      selectedModelId.value = readModelIdForThread(selectedThreadId.value)
+      selectedModelId.value = readModelIdForActiveThreadSelection(selectedThreadId.value)
       ensureAvailableModelIds(selectedModelId.value)
     } else {
       ensureAvailableModelIds(normalizedModelId)
@@ -1665,7 +1672,7 @@ export function useDesktopState() {
     }
     ensureAvailableModelIds(normalizedModelId)
     if (selectedThreadId.value === normalizedThreadId) {
-      selectedModelId.value = readModelIdForThread(selectedThreadId.value)
+      selectedModelId.value = readModelIdForActiveThreadSelection(selectedThreadId.value)
     }
     saveSelectedModelMap(selectedModelIdByContext.value)
   }
@@ -2114,7 +2121,7 @@ export function useDesktopState() {
     })
     if (nextSelectedModelMap !== selectedModelIdByContext.value) {
       selectedModelIdByContext.value = nextSelectedModelMap
-      selectedModelId.value = readModelIdForThread(selectedThreadId.value)
+      selectedModelId.value = readModelIdForActiveThreadSelection(selectedThreadId.value)
       ensureAvailableModelIds(selectedModelId.value)
       saveSelectedModelMap(nextSelectedModelMap)
     }
@@ -4244,7 +4251,6 @@ export function useDesktopState() {
       const detail = resumedThread ?? await getThreadDetail(threadId)
 
       if (resumedThread) {
-        setThreadModelId(threadId, resumedThread.model)
         resumedThreadById.value = {
           ...resumedThreadById.value,
           [threadId]: true,
@@ -4818,10 +4824,9 @@ export function useDesktopState() {
 
     try {
       if (resumedThreadById.value[threadId] !== true) {
-        const resumedThread = await resumeThread(threadId)
-        setThreadModelId(threadId, resumedThread.model)
+        await resumeThread(threadId)
       }
-      const modelId = readModelIdForThread(threadId)
+      const modelId = readModelIdForActiveThreadSelection(threadId)
 
       let startedTurnId = ''
       try {
