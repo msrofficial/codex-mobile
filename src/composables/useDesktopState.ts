@@ -209,12 +209,11 @@ function pruneThreadContextStateMap<T>(
 
 function normalizeProviderContextId(providerId: string): string {
   const normalized = providerId.trim().toLowerCase()
-  return normalized || 'codex'
+  return !normalized || normalized === 'openai' ? 'codex' : normalized
 }
 
 function isCodexProviderContextId(providerId: string): boolean {
-  const normalizedProviderId = normalizeProviderContextId(providerId)
-  return normalizedProviderId === 'codex' || normalizedProviderId === 'openai'
+  return normalizeProviderContextId(providerId) === 'codex'
 }
 
 function isNewThreadContextId(contextId: string): boolean {

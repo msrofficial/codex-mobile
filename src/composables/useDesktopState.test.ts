@@ -454,6 +454,53 @@ describe('model selection', () => {
     expect(state.availableModelIds.value).toEqual(['gpt-5.5'])
   })
 
+  it('uses the Codex provider namespace when the backend reports openai', async () => {
+    installTestWindow({
+      'codex-web-local.selected-thread-id.v1': 'thread-a',
+      'codex-web-local.selected-model-by-context.v1': JSON.stringify({
+        '__new-thread-provider__::codex': 'gpt-5.5',
+      }),
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({
+      groups: [
+        {
+          projectName: 'project',
+          threads: [thread('thread-a', '/tmp/project')],
+        },
+      ],
+      nextCursor: null,
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue(['gpt-5.5'])
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'gpt-5.5',
+      providerId: 'openai',
+      reasoningEffort: 'high',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAccountRateLimits.mockResolvedValue([])
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+
+    const state = useDesktopState()
+
+    await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
+
+    expect(state.selectedModelId.value).toBe('gpt-5.5')
+    expect(state.readModelIdForThread('thread-a')).toBe('gpt-5.5')
+    expect(window.localStorage.setItem).toHaveBeenCalledWith(
+      'codex-web-local.selected-model-by-context.v1',
+      expect.stringContaining('__thread-provider__::codex::thread-a'),
+    )
+    expect(window.localStorage.setItem).not.toHaveBeenCalledWith(
+      'codex-web-local.selected-model-by-context.v1',
+      expect.stringContaining('__new-thread-provider__::openai'),
+    )
+    expect(window.localStorage.setItem).not.toHaveBeenCalledWith(
+      'codex-web-local.selected-model-by-context.v1',
+      expect.stringContaining('__thread-provider__::openai::thread-a'),
+    )
+  })
+
   it('stores existing-thread models per provider', async () => {
     installTestWindow({
       'codex-web-local.selected-thread-id.v1': 'thread-a',

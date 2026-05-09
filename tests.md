@@ -3296,6 +3296,7 @@ When switching providers, the model dropdown should only show models from the ne
 - Model list shows only Codex models (e.g., `gpt-5.2-codex`, `gpt-5.2`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`)
 - No OpenRouter models (e.g., `openrouter/free`) appear in the list
 - Selected model auto-switches to the first Codex model
+- If the backend reports the Codex provider as `openai`, the composer still uses the `Codex` provider selection and shows a real Codex model, not the `Model` placeholder
 - Switching back to OpenRouter shows only OpenRouter models again
 
 #### Rollback/Cleanup
