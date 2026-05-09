@@ -271,6 +271,40 @@ This file tracks manual regression and feature verification steps.
 
 ---
 
+### Provider status hydrates active model after provider switches
+
+#### Feature/Change Name
+Free-mode provider status seeds the provider-scoped composer model so switching from OpenRouter to OpenCode Zen does not leave the model dropdown on the `Model` placeholder.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev --host 127.0.0.1 --port 5174` or equivalent)
+2. At least one existing thread available for OpenRouter testing
+3. At least two existing threads available for OpenCode Zen testing
+4. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. In light theme, open an existing thread and set Provider to OpenRouter.
+2. Wait for the composer model dropdown to show `openrouter/free`.
+3. Send a unique test message and confirm the `/codex-api/rpc` `turn/start` payload uses `model: "openrouter/free"`.
+4. Open a different existing thread and set Provider to OpenCode Zen.
+5. Wait for the composer model dropdown to show `big-pickle`.
+6. Send a unique test message and confirm the `turn/start` payload uses `model: "big-pickle"`.
+7. Open another existing thread while Provider remains OpenCode Zen.
+8. Confirm the composer model dropdown still shows `big-pickle`, then send a unique test message and confirm the payload uses `model: "big-pickle"`.
+9. Switch to dark theme and repeat steps 1-8.
+
+#### Expected Results
+- Switching from OpenRouter to OpenCode Zen never leaves the composer model dropdown on the `Model` placeholder after provider status loads.
+- OpenRouter sends `openrouter/free` for the tested thread.
+- OpenCode Zen sends `big-pickle` for both tested threads.
+- The model dropdown remains readable and usable in light and dark themes.
+
+#### Rollback/Cleanup
+- Switch Provider back to the preferred default after testing.
+- Archive or delete test messages if they were only created for this validation.
+
+---
+
 ### Provider model list loads on normal refresh
 
 #### Feature/Change Name

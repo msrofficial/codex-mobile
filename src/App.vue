@@ -3687,6 +3687,7 @@ async function onProviderChange(provider: string): Promise<void> {
         freeModeEnabled.value = true
       }
     }
+    await withProviderSwitchTimeout(loadFreeModeStatus(), 'Provider status refresh')
     providerError.value = ''
     await withProviderSwitchTimeout(
       refreshAll({ includeSelectedThreadMessages: false, providerChanged: true, awaitAncillaryRefreshes: true }),
@@ -3814,19 +3815,28 @@ async function loadFreeModeStatus(): Promise<void> {
     freeModeEnabled.value = status.enabled
     freeModeHasCustomKey.value = status.customKey ?? false
     freeModeCustomKeyMasked.value = status.maskedKey ?? null
+    let nextProvider: 'codex' | 'openrouter' | 'opencode-zen' | 'custom' = 'codex'
     if (status.enabled) {
       if (status.provider === 'opencode-zen') {
-        selectedProvider.value = 'opencode-zen'
+        nextProvider = 'opencode-zen'
       } else if (status.provider === 'custom') {
-        selectedProvider.value = 'custom'
+        nextProvider = 'custom'
         customEndpointUrl.value = status.customBaseUrl ?? ''
         customEndpointWireApi.value = status.wireApi === 'chat' ? 'chat' : 'responses'
       } else {
-        selectedProvider.value = 'openrouter'
+        nextProvider = 'openrouter'
         openRouterWireApi.value = status.wireApi === 'chat' ? 'chat' : 'responses'
       }
-    } else {
-      selectedProvider.value = 'codex'
+    }
+    selectedProvider.value = nextProvider
+    previewProviderModelSelection(nextProvider)
+    const currentModel = status.currentModel?.trim() ?? ''
+    if (currentModel) {
+      setSelectedModelIdForThread('__new-thread__', currentModel)
+      const threadId = selectedThreadId.value.trim()
+      if (threadId && !readModelIdForThread(threadId).trim()) {
+        setSelectedModelIdForThread(threadId, currentModel)
+      }
     }
   } catch {
     // Ignore — free mode status unknown
