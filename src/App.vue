@@ -207,13 +207,13 @@
               </button>
               <div class="sidebar-settings-row sidebar-settings-row--select" :title="t('Choose the interface language for the app.')">
                 <span class="sidebar-settings-label">{{ t('UI language') }}</span>
-                <select
-                  class="sidebar-settings-provider-select"
-                  :value="uiLanguage"
-                  @change="setUiLanguage(($event.target as HTMLSelectElement).value as 'en' | 'zh-CN')"
-                >
-                  <option v-for="option in uiLanguageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                </select>
+                <ComposerDropdown
+                  class="sidebar-settings-language-dropdown"
+                  :model-value="uiLanguage"
+                  :options="uiLanguageOptions"
+                  open-direction="up"
+                  @update:model-value="setUiLanguage($event as 'en' | 'zh-CN')"
+                />
               </div>
               <button class="sidebar-settings-row" type="button" :title="SETTINGS_HELP.chatWidth" @click="cycleChatWidth">
                 <span class="sidebar-settings-label">{{ t('Chat width') }}</span>
@@ -5094,14 +5094,6 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
   @apply shrink-0 w-6 h-6 flex items-center justify-center rounded-full border border-zinc-200 text-xs text-zinc-400 transition-colors hover:text-zinc-600 hover:border-zinc-300 disabled:opacity-40;
 }
 
-.sidebar-settings-provider-select {
-  @apply min-w-0 max-w-40 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700 outline-none transition-colors cursor-pointer;
-}
-
-.sidebar-settings-provider-select:focus {
-  @apply border-zinc-400 ring-2 ring-zinc-200;
-}
-
 .sidebar-settings-provider-dropdown {
   @apply min-w-0 max-w-40;
 }
@@ -5140,14 +5132,6 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
 
 .sidebar-settings-provider-link {
   @apply text-xs text-blue-600 hover:text-blue-700 underline shrink-0;
-}
-
-:root.dark .sidebar-settings-provider-select {
-  @apply border-zinc-600 bg-zinc-800 text-zinc-200;
-}
-
-:root.dark .sidebar-settings-provider-select:focus {
-  @apply border-zinc-500 ring-zinc-700;
 }
 
 :root.dark .sidebar-settings-provider-dropdown :deep(.composer-dropdown-trigger) {

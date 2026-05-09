@@ -4865,6 +4865,35 @@ Managed worktree threads remain visible under their matching canonical workspace
 
 ---
 
+### App dropdowns use ComposerDropdown
+
+#### Feature/Change Name
+Remaining app-native select controls were moved to `ComposerDropdown`, including UI language, pending request choices, review base branch, and thread automation schedule/status selectors.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev`)
+2. Light theme and dark theme both available from the appearance switcher
+3. At least one Git-backed project is available for the review base-branch control
+
+#### Steps
+1. In light theme, open Settings and open the `UI language` dropdown.
+2. Confirm the dropdown uses app menu styling and switching between `English` and `简体中文` updates the UI language.
+3. Open a pending request or elicitation panel with a choice field and confirm the choice control opens as an app dropdown.
+4. Open Review for a Git-backed thread, switch comparison to `Base branch`, and confirm the branch picker opens as an app dropdown.
+5. Open a thread automation dialog, set schedule mode to `Interval`, open the interval unit dropdown, then open the status dropdown.
+6. Switch to dark theme and repeat steps 1, 4, and 5.
+
+#### Expected Results
+- No normal browser `<select>` controls are visible for these surfaces.
+- The dropdowns preserve their previous values and state updates.
+- Dropdown triggers and menus remain readable in light and dark themes.
+- Review, pending request, and automation controls still submit the selected values correctly.
+
+#### Rollback/Cleanup
+- Switch UI language and provider settings back to the preferred defaults after testing.
+
+---
+
 ### Worktree creation persists across refresh
 
 #### Feature/Change Name
