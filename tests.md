@@ -385,6 +385,8 @@ Model selection is saved per existing thread and per active provider, so switchi
 
 #### Expected Results
 - Existing thread model selections are keyed by thread and provider.
+- Existing threads without a saved model for the active non-Codex provider use that provider's configured/default model instead of a legacy Codex model.
+- Stale Codex `gpt-*` model ids accidentally saved under a non-Codex provider key are ignored until the user explicitly selects a valid non-Codex model.
 - New-thread provider-scoped model behavior remains unchanged.
 - Model dropdown labels and menus remain readable in light and dark themes.
 
