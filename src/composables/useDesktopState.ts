@@ -1091,6 +1091,7 @@ function orderGroupsWithPinnedProjects(
   if (pinnedProjectNames.length === 0) return groups
   const pinnedIndexByName = new Map(pinnedProjectNames.map((name, index) => [name, index]))
   return [...groups].sort((first, second) => {
+    if (isProjectlessGroup(first) || isProjectlessGroup(second)) return 0
     const firstPinnedIndex = pinnedIndexByName.get(first.projectName)
     const secondPinnedIndex = pinnedIndexByName.get(second.projectName)
     if (firstPinnedIndex !== undefined && secondPinnedIndex !== undefined) {
@@ -5134,9 +5135,7 @@ export function useDesktopState() {
     for (const rootPath of rootsState.order) {
       if (matchesWorkspaceRootProject(rootPath, normalizedName)) return rootPath
     }
-    const group = sourceGroups.value.find((item) => item.projectName === normalizedName)
-    const cwd = group?.threads[0]?.cwd?.trim() ?? ''
-    return cwd || normalizedName
+    return ''
   }
 
   function applyPinnedProjectNamesFromRootsState(rootsState: WorkspaceRootsState | null, groups: UiProjectGroup[] = sourceGroups.value): void {
@@ -5169,6 +5168,7 @@ export function useDesktopState() {
         active: rootsState.active,
         projectOrder: rootsState.projectOrder,
         pinnedProjectIds: nextPinnedProjectIds,
+        remoteProjects: rootsState.remoteProjects ?? [],
       })
 
       const nextRootsState: WorkspaceRootsState = {

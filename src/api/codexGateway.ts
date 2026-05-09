@@ -2731,6 +2731,7 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 }
 
 export async function setWorkspaceRootsState(nextState: WorkspaceRootsState): Promise<void> {
+  const previousState = cachedWorkspaceRootsState
   const response = await fetch('/codex-api/workspace-roots-state', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -2739,7 +2740,10 @@ export async function setWorkspaceRootsState(nextState: WorkspaceRootsState): Pr
   if (!response.ok) {
     throw new Error('Failed to save workspace roots state')
   }
-  cachedWorkspaceRootsState = cloneWorkspaceRootsState(nextState)
+  cachedWorkspaceRootsState = cloneWorkspaceRootsState({
+    ...nextState,
+    remoteProjects: nextState.remoteProjects ?? previousState?.remoteProjects ?? [],
+  })
 }
 
 export async function openProjectRoot(path: string, options?: { createIfMissing?: boolean; label?: string }): Promise<string> {
