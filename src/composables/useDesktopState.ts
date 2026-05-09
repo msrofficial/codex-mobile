@@ -1858,20 +1858,30 @@ export function useDesktopState() {
 
       const currentModelInNewList = normalizedSelectedModelId && modelIds.includes(normalizedSelectedModelId)
       if (!normalizedSelectedModelId || !currentModelInNewList || options?.providerChanged) {
+        let nextSelectedModelId = ''
         if (options?.providerChanged && nextModelIds.length > 0) {
           if (normalizedConfiguredModelId && nextModelIds.includes(normalizedConfiguredModelId)) {
-            setSelectedModelId(normalizedConfiguredModelId)
+            nextSelectedModelId = normalizedConfiguredModelId
           } else if (providerScopedModelId && nextModelIds.includes(providerScopedModelId)) {
-            setSelectedModelId(providerScopedModelId)
+            nextSelectedModelId = providerScopedModelId
           } else {
-            setSelectedModelId(nextModelIds[0])
+            nextSelectedModelId = nextModelIds[0]
           }
         } else if (normalizedConfiguredModelId && nextModelIds.includes(normalizedConfiguredModelId)) {
-          setSelectedModelId(currentConfig.model)
+          nextSelectedModelId = currentConfig.model
         } else if (nextModelIds.length > 0) {
-          setSelectedModelId(nextModelIds[0])
+          nextSelectedModelId = nextModelIds[0]
+        }
+
+        setSelectedModelId(nextSelectedModelId)
+        if (options?.providerChanged) {
+          setSelectedModelIdForThread(NEW_THREAD_COLLABORATION_MODE_CONTEXT, nextSelectedModelId)
+        }
+      } else if (options?.providerChanged) {
+        if (normalizedConfiguredModelId && nextModelIds.includes(normalizedConfiguredModelId)) {
+          setSelectedModelIdForThread(NEW_THREAD_COLLABORATION_MODE_CONTEXT, normalizedConfiguredModelId)
         } else {
-          setSelectedModelId('')
+          setSelectedModelIdForThread(NEW_THREAD_COLLABORATION_MODE_CONTEXT, normalizedSelectedModelId)
         }
       }
       if (providerModelContextId && selectedModelId.value.trim().length > 0) {
