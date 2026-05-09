@@ -422,6 +422,38 @@ describe('collaboration mode selection', () => {
 })
 
 describe('model selection', () => {
+  it('does not request provider model lists while Codex is the active provider', async () => {
+    installTestWindow({
+      'codex-web-local.selected-thread-id.v1': 'thread-a',
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({
+      groups: [
+        {
+          projectName: 'project',
+          threads: [thread('thread-a', '/tmp/project')],
+        },
+      ],
+      nextCursor: null,
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue(['gpt-5.5'])
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'gpt-5.5',
+      providerId: 'openai',
+      reasoningEffort: 'high',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAccountRateLimits.mockResolvedValue([])
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+
+    const state = useDesktopState()
+
+    await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
+
+    expect(gatewayMocks.getAvailableModelIds).toHaveBeenCalledWith({ includeProviderModels: false })
+    expect(state.availableModelIds.value).toEqual(['gpt-5.5'])
+  })
+
   it('stores existing-thread models per provider', async () => {
     installTestWindow({
       'codex-web-local.selected-thread-id.v1': 'thread-a',

@@ -3604,6 +3604,24 @@ function finishProviderSwitchRoutePreservation(threadId: string): void {
   }, 250)
 }
 
+function withProviderSwitchTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error(`${label} timed out`))
+    }, 15_000)
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeout)
+        resolve(value)
+      },
+      (error) => {
+        window.clearTimeout(timeout)
+        reject(error)
+      },
+    )
+  })
+}
+
 async function onProviderChange(provider: string): Promise<void> {
   if (freeModeLoading.value) return
   freeModeLoading.value = true
@@ -3616,41 +3634,56 @@ async function onProviderChange(provider: string): Promise<void> {
   try {
     if (provider === 'codex') {
       selectedProvider.value = 'codex'
-      const result = await setFreeMode(false)
+      const result = await withProviderSwitchTimeout(setFreeMode(false), 'Codex provider switch')
       freeModeEnabled.value = result.enabled
     } else if (provider === 'openrouter') {
       selectedProvider.value = 'openrouter'
-      const result = await setFreeMode(true)
+      const result = await withProviderSwitchTimeout(setFreeMode(true), 'OpenRouter provider switch')
       freeModeEnabled.value = result.enabled
-      await setCustomProvider('', '', {
-        wireApi: openRouterWireApi.value,
-        provider: 'openrouter',
-      })
+      await withProviderSwitchTimeout(
+        setCustomProvider('', '', {
+          wireApi: openRouterWireApi.value,
+          provider: 'openrouter',
+        }),
+        'OpenRouter provider configuration',
+      )
     } else if (provider === 'opencode-zen') {
       selectedProvider.value = 'opencode-zen'
-      await setCustomProvider('', opencodeZenKey.value.trim(), {
-        wireApi: 'chat',
-        provider: 'opencode-zen',
-      })
+      await withProviderSwitchTimeout(
+        setCustomProvider('', opencodeZenKey.value.trim(), {
+          wireApi: 'chat',
+          provider: 'opencode-zen',
+        }),
+        'OpenCode Zen provider configuration',
+      )
       freeModeEnabled.value = true
     } else if (provider === 'custom') {
       selectedProvider.value = 'custom'
       if (customEndpointUrl.value.trim() && customEndpointKey.value.trim()) {
-        await setCustomProvider(customEndpointUrl.value.trim(), customEndpointKey.value.trim(), {
-          wireApi: customEndpointWireApi.value,
-        })
+        await withProviderSwitchTimeout(
+          setCustomProvider(customEndpointUrl.value.trim(), customEndpointKey.value.trim(), {
+            wireApi: customEndpointWireApi.value,
+          }),
+          'Custom provider configuration',
+        )
         freeModeEnabled.value = true
       }
     }
     providerError.value = ''
-    await refreshAll({ includeSelectedThreadMessages: false, providerChanged: true, awaitAncillaryRefreshes: true })
+    await withProviderSwitchTimeout(
+      refreshAll({ includeSelectedThreadMessages: false, providerChanged: true, awaitAncillaryRefreshes: true }),
+      'Provider refresh',
+    )
     if (activeThreadIdBeforeProviderChange) {
       const providerModelId = readModelIdForThread('__new-thread__').trim() || selectedModelId.value.trim()
       if (providerModelId) {
         setSelectedModelIdForThread(activeThreadIdBeforeProviderChange, providerModelId)
       }
       await restoreThreadRouteAfterProviderChange(activeThreadIdBeforeProviderChange)
-      await ensureThreadMessagesLoaded(activeThreadIdBeforeProviderChange, { silent: true }).catch(() => {})
+      await withProviderSwitchTimeout(
+        ensureThreadMessagesLoaded(activeThreadIdBeforeProviderChange, { silent: true }).catch(() => {}),
+        'Provider thread refresh',
+      )
       await nextTick()
       await restoreThreadRouteAfterProviderChange(activeThreadIdBeforeProviderChange)
       finishProviderSwitchRoutePreservation(activeThreadIdBeforeProviderChange)
