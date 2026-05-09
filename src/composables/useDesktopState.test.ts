@@ -196,6 +196,31 @@ describe('filterGroupsByWorkspaceRoots', () => {
     ])
   })
 
+  it('maps durable pinned root paths to visible project names', () => {
+    const groups: UiProjectGroup[] = [
+      {
+        projectName: 'promo',
+        threads: [thread('promo-chat', '/tmp/promo')],
+      },
+      {
+        projectName: '.codex',
+        threads: [thread('codex-chat', '/Users/igor/.codex')],
+      },
+    ]
+    const rootsState: WorkspaceRootsState = {
+      order: ['/tmp/promo', '/Users/igor/.codex'],
+      labels: {},
+      active: ['/tmp/promo'],
+      projectOrder: ['/tmp/promo', '/Users/igor/.codex'],
+      pinnedProjectIds: ['/Users/igor/.codex'],
+    }
+
+    expect(filterGroupsByWorkspaceRoots(groups, rootsState).map((group) => group.projectName)).toEqual([
+      '.codex',
+      'promo',
+    ])
+  })
+
   it('keeps projectless groups stable when projects are pinned', () => {
     const groups: UiProjectGroup[] = [
       {

@@ -1072,16 +1072,29 @@ function getWorkspaceProjectOrderNames(
 
 function getWorkspacePinnedProjectNames(
   rootsState: WorkspaceRootsState | null,
-  duplicateLeafNames: Set<string>,
+  groups: UiProjectGroup[],
 ): string[] {
   if (!rootsState) return []
   const remoteProjectsById = getRemoteProjectById(rootsState)
-  return (rootsState.pinnedProjectIds ?? []).map((projectId) => {
-    if (remoteProjectsById.has(projectId)) return projectId
+  const pinnedProjectNames: string[] = []
+  for (const projectId of rootsState.pinnedProjectIds ?? []) {
+    if (remoteProjectsById.has(projectId)) {
+      pinnedProjectNames.push(projectId)
+      continue
+    }
     const normalizedRootPath = normalizePathForUi(projectId).trim()
-    const leafName = toProjectNameFromWorkspaceRoot(normalizedRootPath)
-    return duplicateLeafNames.has(leafName) ? normalizedRootPath : leafName
-  }).filter((name) => name.length > 0)
+    if (!normalizedRootPath) continue
+    const matchedGroup = groups.find((group) => {
+      if (group.projectName === normalizedRootPath) return true
+      if (matchesWorkspaceRootProject(normalizedRootPath, group.projectName)) return true
+      return group.threads.some((thread) => normalizePathForUi(thread.cwd).trim() === normalizedRootPath)
+    })
+    const projectName = matchedGroup?.projectName ?? toProjectNameFromWorkspaceRoot(normalizedRootPath)
+    if (projectName && !pinnedProjectNames.includes(projectName)) {
+      pinnedProjectNames.push(projectName)
+    }
+  }
+  return pinnedProjectNames
 }
 
 function orderGroupsWithPinnedProjects(
@@ -1196,7 +1209,7 @@ function orderGroupsByWorkspaceProjectOrder(
   duplicateLeafNames: Set<string>,
 ): UiProjectGroup[] {
   const order = getWorkspaceProjectOrderNames(rootsState, duplicateLeafNames)
-  const pinnedProjectNames = getWorkspacePinnedProjectNames(rootsState, duplicateLeafNames)
+  const pinnedProjectNames = getWorkspacePinnedProjectNames(rootsState, groups)
   if (order.length === 0) return orderGroupsWithPinnedProjects(groups, pinnedProjectNames)
   const orderIndexByName = new Map(order.map((name, index) => [name, index]))
   const orderedGroups = [...groups].sort((first, second) => {
@@ -3979,8 +3992,7 @@ export function useDesktopState() {
 
   function applyThreadGroups(groups: UiProjectGroup[], rootsState: WorkspaceRootsState | null): void {
     const visibleGroups = filterGroupsByWorkspaceRoots(groups, rootsState)
-    const duplicateLeafNames = collectDuplicateProjectLeafNames(groups, rootsState)
-    pinnedProjectNames.value = getWorkspacePinnedProjectNames(rootsState, duplicateLeafNames)
+    pinnedProjectNames.value = getWorkspacePinnedProjectNames(rootsState, visibleGroups)
     const hasWorkspaceRootsState = Boolean(
       rootsState && (rootsState.order.length > 0 || rootsState.projectOrder.length > 0 || (rootsState.remoteProjects ?? []).length > 0),
     )
@@ -5139,8 +5151,7 @@ export function useDesktopState() {
   }
 
   function applyPinnedProjectNamesFromRootsState(rootsState: WorkspaceRootsState | null, groups: UiProjectGroup[] = sourceGroups.value): void {
-    const duplicateLeafNames = collectDuplicateProjectLeafNames(groups, rootsState)
-    pinnedProjectNames.value = getWorkspacePinnedProjectNames(rootsState, duplicateLeafNames)
+    pinnedProjectNames.value = getWorkspacePinnedProjectNames(rootsState, groups)
   }
 
   function isProjectPinned(projectName: string): boolean {
