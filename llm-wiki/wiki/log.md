@@ -52,3 +52,9 @@
 - Updated wiki page: `concepts/opencode-zen-big-pickle.md`.
 - Documents: visible composer model authority, free-mode status hydration, per-thread/per-provider preservation, bounded free-mode status fetch, and OpenRouter/Zen send-plus-receive browser verification.
 - Updated `index.md`.
+
+## [2026-05-10] ingest | Zen reasoning summary replay fix
+- Added source: `raw/fixes/opencode-zen-reasoning-summary-replay.md`.
+- Updated wiki page: `concepts/opencode-zen-big-pickle.md`.
+- Documents: non-empty Responses reasoning `content` caused `array_above_max_length`, and translated Zen reasoning now uses `summary_text` with `content: []`.
+- Updated `index.md`.

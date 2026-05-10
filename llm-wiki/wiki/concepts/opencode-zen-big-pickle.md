@@ -51,7 +51,7 @@ model_provider = "opencode-zen"
 Codex Web Local can expose OpenCode Zen through its local Responses-compatible proxy. The proxy translates between Codex-style Responses input and Zen's Chat Completions-only API.
 
 For thinking-mode models behind `big-pickle`, the proxy must preserve assistant reasoning in both directions:
-- Upstream Chat `message.reasoning_content` becomes a Responses `reasoning` output item.
+- Upstream Chat `message.reasoning_content` becomes a Responses `reasoning` output item with `summary_text` and `content: []`, so later Responses-backed turns do not replay non-empty reasoning content and trigger `array_above_max_length`.
 - Later Responses `reasoning` input becomes assistant Chat `reasoning_content`.
 - Reasoning that precedes function calls is attached to the assistant tool-call message.
 - Streaming Chat `reasoning_content` deltas are emitted as synthetic Responses reasoning output.
@@ -84,5 +84,6 @@ The browser verification clicked send and waited for an assistant message row co
 ## Related
 - Source: [opencode-zen-big-pickle-codex-cli.md](../../raw/fixes/opencode-zen-big-pickle-codex-cli.md)
 - Source: [opencode-zen-reasoning-content-proxy.md](../../raw/fixes/opencode-zen-reasoning-content-proxy.md)
+- Source: [opencode-zen-reasoning-summary-replay.md](../../raw/fixes/opencode-zen-reasoning-summary-replay.md)
 - Source: [provider-scoped-model-selection-zen.md](../../raw/fixes/provider-scoped-model-selection-zen.md)
 - [merge-to-main-workflow.md](./merge-to-main-workflow.md)

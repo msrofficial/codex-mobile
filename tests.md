@@ -5220,3 +5220,34 @@ The sidebar Chats section lists the first 10 projectless chats, offers Show more
 
 #### Rollback/Cleanup
 - None.
+
+---
+
+### OpenCode Zen reasoning replay keeps Responses input valid
+
+#### Feature/Change Name
+OpenCode Zen reasoning output is replay-safe when a later turn is sent through a Responses API provider.
+
+#### Prerequisites/Setup
+1. Dev server running on a non-5173 port, for example `pnpm run dev --host 127.0.0.1 --port 5174`
+2. OpenCode Zen provider available with model `big-pickle`
+3. Codex provider available
+4. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. In light theme, switch Provider to `OpenCode Zen`.
+2. Send a prompt that produces a visible assistant reply from `big-pickle`.
+3. Switch Provider to `Codex` in the same thread.
+4. Send `hi` and wait for a visible assistant reply.
+5. Confirm the browser does not show an upstream 400 error containing `input[4].content` or `array_above_max_length`.
+6. Switch to dark theme and repeat steps 1-5 in a fresh thread.
+
+#### Expected Results
+- Zen reasoning output is represented with `summary` and an empty `content` array.
+- A later Responses-backed turn does not fail with `Invalid 'input[4].content': array too long`.
+- Both provider turns render visible assistant replies in the browser.
+- Composer controls and replies remain readable in light and dark themes.
+
+#### Rollback/Cleanup
+- Switch Provider back to the preferred default after testing.
+- Archive or delete temporary test threads if desired.

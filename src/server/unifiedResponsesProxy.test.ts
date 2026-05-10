@@ -50,19 +50,45 @@ describe('unified responses proxy reasoning_content translation', () => {
       {
         type: 'reasoning',
         id: expect.stringMatching(/^rs_/),
-        summary: [],
-        content: [{ type: 'reasoning_text', text: 'thinking trace' }],
+        summary: [{ type: 'summary_text', text: 'thinking trace' }],
+        content: [],
       },
     ])
   })
 
-  it('passes prior reasoning items back as assistant reasoning_content', () => {
+  it('passes prior reasoning item content back as assistant reasoning_content', () => {
     const messages = responsesInputToMessages([
       {
         type: 'reasoning',
         id: 'rs_test',
         summary: [],
         content: [{ type: 'reasoning_text', text: 'thinking trace' }],
+      },
+      {
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'output_text', text: 'Hello.' }],
+      },
+      {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: 'again' }],
+      },
+    ])
+
+    expect(messages).toEqual([
+      { role: 'assistant', content: 'Hello.', reasoning_content: 'thinking trace' },
+      { role: 'user', content: 'again' },
+    ])
+  })
+
+  it('passes prior reasoning summaries back as assistant reasoning_content', () => {
+    const messages = responsesInputToMessages([
+      {
+        type: 'reasoning',
+        id: 'rs_test',
+        summary: [{ type: 'summary_text', text: 'thinking trace' }],
+        content: [],
       },
       {
         type: 'message',

@@ -24,4 +24,5 @@
 - [../raw/projects/codex-web-local.md](../raw/projects/codex-web-local.md): immutable source snapshot for project facts.
 - [../raw/fixes/opencode-zen-big-pickle-codex-cli.md](../raw/fixes/opencode-zen-big-pickle-codex-cli.md): Big Pickle + Codex CLI fix details.
 - [../raw/fixes/opencode-zen-reasoning-content-proxy.md](../raw/fixes/opencode-zen-reasoning-content-proxy.md): Codex Web Local Zen proxy reasoning_content round-trip fix and Docker verification.
+- [../raw/fixes/opencode-zen-reasoning-summary-replay.md](../raw/fixes/opencode-zen-reasoning-summary-replay.md): Zen reasoning output summary format that keeps later Responses replay valid.
 - [../raw/fixes/provider-scoped-model-selection-zen.md](../raw/fixes/provider-scoped-model-selection-zen.md): provider-scoped model selection, OpenRouter/Zen thread switching, and send-plus-receive browser verification.

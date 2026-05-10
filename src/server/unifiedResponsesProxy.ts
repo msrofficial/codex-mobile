@@ -145,6 +145,15 @@ function extractTextParts(value: unknown): string {
     .join('\n')
 }
 
+function buildReasoningOutputItem(reasoningContent: string): Record<string, unknown> {
+  return {
+    type: 'reasoning',
+    id: `rs_${Date.now()}`,
+    summary: [{ type: 'summary_text', text: reasoningContent }],
+    content: [],
+  }
+}
+
 export function responsesInputToMessages(input: string | ResponsesApiInput[], instructions?: string): ChatMessage[] {
   const messages: ChatMessage[] = []
   let pendingReasoningContent = ''
@@ -304,12 +313,7 @@ export function chatCompletionToResponsesFormat(chatResponse: Record<string, unk
     }
 
     if (message.reasoning_content) {
-      output.push({
-        type: 'reasoning',
-        id: `rs_${Date.now()}`,
-        summary: [],
-        content: [{ type: 'reasoning_text', text: message.reasoning_content }],
-      })
+      output.push(buildReasoningOutputItem(message.reasoning_content))
     }
   }
 
@@ -386,12 +390,7 @@ function forwardStreamingTextResponse(
     const messageItem = { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: fullText }], status: 'completed' }
     const output: Array<Record<string, unknown>> = [messageItem]
     if (fullReasoningText) {
-      output.push({
-        type: 'reasoning',
-        id: `rs_${Date.now()}`,
-        summary: [],
-        content: [{ type: 'reasoning_text', text: fullReasoningText }],
-      })
+      output.push(buildReasoningOutputItem(fullReasoningText))
     }
     res.write(`data: {"type":"response.output_text.done","output_index":0,"content_index":0,"text":"${escapedFull}"}\n\n`)
     res.write(`data: {"type":"response.content_part.done","output_index":0,"content_index":0,"part":{"type":"output_text","text":"${escapedFull}"}}\n\n`)
