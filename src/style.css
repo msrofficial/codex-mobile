@@ -1661,6 +1661,7 @@
 }
 
 :root.dark .automations-refresh,
+:root.dark .automations-create,
 :root.dark .automation-edit-button,
 :root.dark .automation-detail-edit,
 :root.dark .automations-list,
@@ -1669,6 +1670,7 @@
 }
 
 :root.dark .automations-refresh:hover,
+:root.dark .automations-create:hover,
 :root.dark .automation-edit-button:hover,
 :root.dark .automation-detail-edit:hover,
 :root.dark .automation-row:hover,
