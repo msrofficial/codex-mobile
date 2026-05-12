@@ -303,6 +303,34 @@ Rollback/cleanup:
 
 ---
 
+### Desktop state storage helper split
+
+#### Feature/Change Name
+Desktop state localStorage and context-key helper extraction.
+
+#### Prerequisites/Setup
+1. Dependencies installed with `pnpm install`
+2. Dev server available if doing a manual browser pass (`pnpm run dev --host 127.0.0.1 --port 4173`)
+3. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. Run `pnpm run test:unit -- src/composables/useDesktopState.test.ts`.
+2. Run `pnpm run build:frontend`.
+3. In light theme, open the app and switch between at least two existing threads.
+4. Change the selected model or collaboration mode for a thread, refresh the page, and confirm the selection persists.
+5. Switch to dark theme and repeat steps 3-4.
+
+#### Expected Results
+- Desktop-state unit tests pass.
+- Frontend typecheck/build passes.
+- Selected thread, per-thread model, collaboration mode, unread state, project order, token usage, and terminal-open persistence continue to work through the extracted helper module.
+- The behavior is theme-independent and works in light theme and dark theme.
+
+#### Rollback/Cleanup
+- None.
+
+---
+
 ### Composio logged-out connector preview
 
 #### Feature/Change Name
