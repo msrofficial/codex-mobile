@@ -1124,6 +1124,7 @@ import type { ReasoningEffort, SpeedMode, UiAccountEntry, UiRateLimitWindow, UiS
 import type { ComposerDraftPayload, ThreadComposerExposed } from './components/content/ThreadComposer.vue'
 import type { GitCommitOption, LocalDirectoryEntry, TelegramStatus, ThreadTerminalQuickCommand, WorktreeBranchOption } from './api/codexGateway'
 import { getFreeModeStatus, setFreeMode, setFreeModeCustomKey, setCustomProvider } from './api/codexGateway'
+import { buildExportFileName, buildThreadMarkdown } from './appExportMarkdown'
 import { getPathLeafName, getPathParent, isProjectlessChatPath, normalizePathForUi } from './pathUtils.js'
 
 const ThreadConversation = defineAsyncComponent(() => import('./components/content/ThreadConversation.vue'))
@@ -3669,8 +3670,8 @@ function onImplementPlan(payload: { turnId: string }): void {
 function onExportChat(): void {
   if (isHomeRoute.value || isSkillsRoute.value || isAutomationsRoute.value || typeof document === 'undefined') return
   if (!selectedThread.value || filteredMessages.value.length === 0) return
-  const markdown = buildThreadMarkdown()
-  const fileName = buildExportFileName()
+  const markdown = buildThreadMarkdown(selectedThread.value, filteredMessages.value)
+  const fileName = buildExportFileName(selectedThread.value)
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' })
   const objectUrl = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -3680,78 +3681,6 @@ function onExportChat(): void {
   link.click()
   document.body.removeChild(link)
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
-}
-
-function buildThreadMarkdown(): string {
-  const lines: string[] = []
-  const threadTitle = selectedThread.value?.title?.trim() || 'Untitled thread'
-  lines.push(`# ${escapeMarkdownText(threadTitle)}`)
-  lines.push('')
-  lines.push(`- Exported: ${new Date().toISOString()}`)
-  lines.push(`- Thread ID: ${selectedThread.value?.id ?? ''}`)
-  lines.push('')
-  lines.push('---')
-  lines.push('')
-
-  for (const message of filteredMessages.value) {
-    const roleLabel = message.role ? message.role.toUpperCase() : 'MESSAGE'
-    lines.push(`## ${roleLabel}`)
-    lines.push('')
-
-    const normalizedText = message.text.trim()
-    if (normalizedText) {
-      lines.push(normalizedText)
-      lines.push('')
-    }
-
-    if (message.commandExecution) {
-      lines.push('```text')
-      lines.push(`command: ${message.commandExecution.command}`)
-      lines.push(`status: ${message.commandExecution.status}`)
-      if (message.commandExecution.cwd) {
-        lines.push(`cwd: ${message.commandExecution.cwd}`)
-      }
-      if (message.commandExecution.exitCode !== null) {
-        lines.push(`exitCode: ${message.commandExecution.exitCode}`)
-      }
-      lines.push(message.commandExecution.aggregatedOutput || '(no output)')
-      lines.push('```')
-      lines.push('')
-    }
-
-    if (message.fileAttachments && message.fileAttachments.length > 0) {
-      lines.push('Attachments:')
-      for (const attachment of message.fileAttachments) {
-        lines.push(`- ${attachment.path}`)
-      }
-      lines.push('')
-    }
-
-    if (message.images && message.images.length > 0) {
-      lines.push('Images:')
-      for (const imageUrl of message.images) {
-        lines.push(`- ${imageUrl}`)
-      }
-      lines.push('')
-    }
-  }
-
-  return `${lines.join('\n').trimEnd()}\n`
-}
-
-function buildExportFileName(): string {
-  const threadTitle = selectedThread.value?.title?.trim() || 'chat'
-  const sanitized = threadTitle
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  const base = sanitized || 'chat'
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  return `${base}-${stamp}.md`
-}
-
-function escapeMarkdownText(value: string): string {
-  return value.replace(/([\\`*_{}\[\]()#+\-.!])/g, '\\$1')
 }
 
 function loadBoolPref(key: string, fallback: boolean): boolean {

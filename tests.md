@@ -303,6 +303,33 @@ Rollback/cleanup:
 
 ---
 
+### App chat export formatter split
+
+#### Feature/Change Name
+Root app markdown export formatter extraction.
+
+#### Prerequisites/Setup
+1. Dependencies installed with `pnpm install`
+2. Dev server available if doing a manual browser pass (`pnpm run dev --host 127.0.0.1 --port 4173`)
+3. A thread with user/assistant messages, command output, attachments, or images
+4. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. Run `pnpm run build:frontend`.
+2. In light theme, open a populated thread and trigger chat export.
+3. Open the downloaded markdown file and confirm the title, exported timestamp, thread ID, message roles, text, command output, attachments, and images are present.
+4. Switch to dark theme and repeat steps 2-3.
+
+#### Expected Results
+- Frontend typecheck/build passes.
+- Exported markdown content and filename format match the pre-extraction behavior.
+- Export behavior is unchanged in light theme and dark theme.
+
+#### Rollback/Cleanup
+- Delete downloaded markdown export files if they are no longer needed.
+
+---
+
 ### Thread conversation file-change helper split
 
 #### Feature/Change Name
