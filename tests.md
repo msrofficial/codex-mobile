@@ -303,6 +303,34 @@ Rollback/cleanup:
 
 ---
 
+### Thread conversation file-change helper split
+
+#### Feature/Change Name
+Thread conversation file-change summary and diff-line helper extraction.
+
+#### Prerequisites/Setup
+1. Dependencies installed with `pnpm install`
+2. Dev server available if doing a manual browser pass (`pnpm run dev --host 127.0.0.1 --port 4173`)
+3. A thread with modified-file summaries or recovered apply-patch file changes
+4. Light theme and dark theme both available from the appearance switcher
+
+#### Steps
+1. Run `pnpm run build:frontend`.
+2. In light theme, open a thread with a modified-files summary.
+3. Open the file-change summary and confirm file labels, operation badges, and line deltas are correct.
+4. Open the diff viewer and confirm added, removed, hunk, and context lines render with stable line numbers.
+5. Switch to dark theme and repeat steps 2-4.
+
+#### Expected Results
+- Frontend typecheck/build passes.
+- File-change summaries are still grouped by assistant turn and standalone metadata message as before.
+- Diff viewer selection, labels, deltas, and line rendering remain stable in light theme and dark theme.
+
+#### Rollback/Cleanup
+- None.
+
+---
+
 ### Server inline payload helper split
 
 #### Feature/Change Name
