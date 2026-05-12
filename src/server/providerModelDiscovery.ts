@@ -64,7 +64,7 @@ function buildProviderModelsUrl(baseUrl: string, queryParams: unknown): URL {
   return url
 }
 
-function normalizeProviderModelsData(payload: unknown): string[] {
+export function normalizeProviderModelsData(payload: unknown): string[] {
   const record = asRecord(payload)
   const rows = Array.isArray(record?.data) ? record.data : null
   if (!rows) {
@@ -79,6 +79,14 @@ function normalizeProviderModelsData(payload: unknown): string[] {
     ids.push(candidate)
   }
   return ids
+}
+
+function logProviderModelDiscoveryWarning(message: string, details: Record<string, unknown>): void {
+  console.warn('[codex-provider-models]', message, details)
+}
+
+function isTimeoutError(payload: unknown): boolean {
+  return payload instanceof Error && (payload.name === 'AbortError' || payload.name === 'TimeoutError')
 }
 
 export async function fetchCustomEndpointDefaultModel(baseUrl: string, apiKey: string): Promise<string> {

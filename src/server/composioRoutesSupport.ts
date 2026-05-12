@@ -38,6 +38,8 @@ export type ComposioUserData = {
   testUserId: string
 }
 
+const COMPOSIO_USER_DATA_PATH = join(homedir(), '.composio', 'user_data.json')
+
 export type ComposioStatusResponse = {
   available: boolean
   authenticated: boolean

@@ -5,7 +5,7 @@ export const API_PERF_MS_THRESHOLD_ENV_KEY = 'CODEXUI_API_PERF_MS_THRESHOLD'
 export const API_PERF_BODY_MB_THRESHOLD_ENV_KEY = 'CODEXUI_API_PERF_BODY_MB_THRESHOLD'
 const DEFAULT_API_PERF_MS_THRESHOLD = 300
 const DEFAULT_API_PERF_BODY_MB_THRESHOLD = 1
-const MB_DIVISOR = 1024 * 1024
+export const MB_DIVISOR = 1024 * 1024
 function readEnvValueFromFile(filePath: string, key: string): string | null {
   try {
     const content = readFileSync(filePath, 'utf8')

@@ -96,11 +96,12 @@ import {
   readThreadQueueState,
   writeThreadQueueState,
 } from './backendQueueProcessor.js'
+export { BackendQueueProcessor } from './backendQueueProcessor.js'
 import { MethodCatalog } from './methodCatalog.js'
 import { fetchConnectorLogo, handleFileUpload, proxyTranscribe } from './mediaProxyRoutes.js'
-import { fetchCustomEndpointDefaultModel, readProviderBackedModelIds } from './providerModelDiscovery.js'
+import { fetchCustomEndpointDefaultModel, normalizeProviderModelsData, readProviderBackedModelIds } from './providerModelDiscovery.js'
 import { cloneGithubRepositoryIntoBase, createProjectlessThreadDirectory } from './projectCreation.js'
-import { API_PERF_BODY_MB_THRESHOLD, API_PERF_LOGGING_ENABLED, API_PERF_MS_THRESHOLD, getChunkByteLength } from './apiPerfConfig.js'
+import { API_PERF_BODY_MB_THRESHOLD, API_PERF_LOGGING_ENABLED, API_PERF_MS_THRESHOLD, MB_DIVISOR, getChunkByteLength } from './apiPerfConfig.js'
 import { buildThreadSearchIndex, isExactPhraseMatch, listFilesWithRipgrep, scoreFileCandidate, type ThreadSearchIndex } from './threadSearchIndex.js'
 import { mergeSessionSkillInputsIntoThreadResult, sanitizeThreadTurnsInlinePayloads } from './threadInlinePayloads.js'
 export { mergeSessionSkillInputsIntoTurns, sanitizeThreadTurnsInlinePayloads } from './threadInlinePayloads.js'
@@ -130,6 +131,12 @@ type RpcProxyRequest = {
 
 type RpcExecutor = {
   rpc: (method: string, params: unknown) => Promise<unknown>
+}
+
+type TelegramBridgeConfigState = {
+  botToken: string
+  chatIds: number[]
+  allowedUserIds: Array<number | '*'>
 }
 
 type ServerRequestReply = {

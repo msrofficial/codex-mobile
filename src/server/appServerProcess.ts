@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { buildAppServerArgs } from './appServerRuntimeConfig.js'
 import {
   FREE_MODE_STATE_FILE,
+  createDefaultOpenCodeZenFreeModeState,
   getFreeModeConfigArgs,
   getFreeModeEnvVars,
   shouldCreateDefaultFreeModeStateForMissingAuth,
@@ -87,7 +88,7 @@ function ensureDefaultFreeModeStateForMissingAuthSync(statePath: string): FreeMo
   if (!shouldCreateDefaultFreeModeStateForMissingAuth(current, hasUsableCodexAuthSync())) {
     return current
   }
-  const next = { mode: 'openai', keyIndex: 0, updatedAt: new Date().toISOString() } satisfies FreeModeState
+  const next = createDefaultOpenCodeZenFreeModeState()
   writeFileSync(statePath, JSON.stringify(next, null, 2), 'utf8')
   return next
 }

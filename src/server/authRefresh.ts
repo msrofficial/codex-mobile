@@ -32,6 +32,17 @@ type CodexAuth = {
   }
 }
 
+export type ChatgptAuthTokensRefreshParams = {
+  reason?: string
+  previousAccountId?: string
+}
+
+export type ChatgptAuthTokensRefreshResponse = {
+  accessToken: string
+  chatgptAccountId: string
+  chatgptPlanType: string | null
+}
+
 const CODEX_CHATGPT_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann'
 const DEFAULT_CODEX_REFRESH_TOKEN_URL = 'https://auth.openai.com/oauth/token'
 
