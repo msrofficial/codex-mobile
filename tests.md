@@ -5635,3 +5635,34 @@ OpenRouter provider fallback uses one verified bundled key when no key is config
 
 #### Rollback/Cleanup
 - Delete only the isolated test `webui-custom-providers.json` or remove the temporary `CODEX_HOME`.
+
+---
+
+### Empty thread turn recovery after auth restart
+
+#### Feature/Change Name
+Recover stored session turns when provider/auth restart returns an empty thread.
+
+#### Prerequisites/Setup
+1. Build the packaged app with `pnpm run build` and `pnpm pack --pack-destination /tmp`.
+2. Build a Docker image from the packed tarball plus `@openai/codex`.
+3. Start a fresh no-auth container with an isolated `CODEX_HOME`.
+4. Have a usable host Codex `auth.json` available for the restart step.
+
+#### Steps
+1. In light theme, open the no-auth container and send `hi`.
+2. Wait for the OpenCode Zen assistant reply.
+3. Record the thread id from the current route or the session JSONL.
+4. Copy host `auth.json` into the container `CODEX_HOME` and restart the container.
+5. Reopen `#/thread/<thread-id>`.
+6. Confirm the old `hi` and assistant reply still render instead of `No messages in this thread yet.`
+7. Repeat the reopen check in dark theme.
+
+#### Expected Results
+- If app-server returns a valid thread with `turns: []` but the thread path points at a JSONL containing user/assistant `response_item` messages, the bridge reconstructs minimal `userMessage` and `agentMessage` turn items.
+- Synthetic setup blocks such as `<environment_context>` and skill wrapper payloads are not rendered as chat messages.
+- The routed thread remains readable after switching from no-auth OpenCode Zen fallback to Codex-auth startup.
+- Light theme and dark theme render the recovered user and assistant messages clearly.
+
+#### Rollback/Cleanup
+- Stop the temporary container and remove its isolated `CODEX_HOME`.
