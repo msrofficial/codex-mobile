@@ -5661,6 +5661,7 @@ Recover stored session turns when provider/auth restart returns an empty thread.
 #### Expected Results
 - If app-server returns a valid thread with `turns: []` but the thread path points at a JSONL containing user/assistant `response_item` messages, the bridge reconstructs minimal `userMessage` and `agentMessage` turn items.
 - Synthetic setup blocks such as `<environment_context>` and skill wrapper payloads are not rendered as chat messages.
+- Recovered session items render even when the app-server schema drops item ids; the UI uses stable turn-relative fallback ids.
 - The routed thread remains readable after switching from no-auth OpenCode Zen fallback to Codex-auth startup.
 - Light theme and dark theme render the recovered user and assistant messages clearly.
 
