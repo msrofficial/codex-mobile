@@ -786,43 +786,43 @@ const POPULAR_PLUGIN_NAME_BONUSES: Array<[RegExp, number]> = [
 const PLUGIN_EXAMPLE_RULES: Array<{ pattern: RegExp; examples: string[] }> = [
   {
     pattern: /(gmail|email|outlook|mail|inbox)/i,
-    examples: ['Triage inbox chaos', 'Extract hidden todos', 'Draft the hard reply', 'Find attachments fast', 'Clean newsletter pile'],
+    examples: ['Make a VIP reply queue', 'Find invoices due this week', 'Draft no-thanks politely', 'List flight email changes', 'Archive promo clutter'],
   },
   {
     pattern: /(calendar|event|availability|meeting)/i,
-    examples: ['Rescue my week', 'Find focus blocks', 'Prep meeting brief', 'Move conflicts cleanly', 'Audit time leaks'],
+    examples: ['Protect 3 focus blocks', 'Prep my 2pm meeting', 'Find lunch with Alex', 'Move double-booked calls', 'Show meetings without notes'],
   },
   {
     pattern: /(google drive|drive|dropbox|box|sharepoint|file|storage)/i,
-    examples: ['Find the source doc', 'Brief from scattered files', 'Compare recent edits', 'Summarize a folder', 'Pull proof for a claim'],
+    examples: ['Find Q4 budget files', 'Brief from client folder', 'Compare latest contract edits', 'List stale shared docs', 'Find deck with churn chart'],
   },
   {
     pattern: /(google docs|docs|document)/i,
-    examples: ['Turn notes into a doc', 'Draft a first pass', 'Extract decisions', 'Rewrite for clarity', 'Make an exec brief'],
+    examples: ['Turn notes into PRD', 'Make a one-page brief', 'Extract decisions table', 'Rewrite as customer email', 'Add crisp section titles'],
   },
   {
     pattern: /(google sheets|sheets|spreadsheet|excel)/i,
-    examples: ['Clean messy rows', 'Spot weird outliers', 'Make a quick pivot', 'Write formulas', 'Summarize the numbers'],
+    examples: ['Clean duplicate leads', 'Flag spend outliers', 'Build revenue pivot', 'Write margin formulas', 'Draft 3-line KPI readout'],
   },
   {
     pattern: /(notion|wiki|page)/i,
-    examples: ['Update team wiki', 'Turn chaos into tasks', 'Find stale docs', 'Build a project brief', 'Extract action items'],
+    examples: ['Make launch task board', 'Find stale onboarding pages', 'Turn meeting notes to tasks', 'Draft product spec page', 'Summarize open decisions'],
   },
   {
     pattern: /(obsidian|vault|second brain|pkm|notes)/i,
-    examples: ['Search my vault', 'Connect related notes', 'Make a daily brief', 'Extract evergreen ideas', 'Turn notes into tasks'],
+    examples: ['Roll up weekly daily notes', 'Link orphan notes to projects', 'Turn YouTube link into note', 'Extract task log entries', 'Create insight index'],
   },
   {
     pattern: /(reddit|subreddit)/i,
-    examples: ['Find real user pain', 'Mine subreddit questions', 'Spot complaint patterns', 'Draft a helpful reply', 'Track niche trends'],
+    examples: ['Find 10 SaaS complaints', 'Mine r/productivity questions', 'Spot pricing objections', 'Draft non-salesy reply', 'Track competitor pain posts'],
   },
   {
     pattern: /(x|twitter)/i,
-    examples: ['Find trend angles', 'Draft a sharp thread', 'Monitor brand mentions', 'Turn post into replies', 'Compare hot takes'],
+    examples: ['Find angry launch replies', 'Draft 8-tweet teardown', 'Monitor brand mentions today', 'Turn blog into thread', 'Compare influencer takes'],
   },
   {
     pattern: /(youtube|tiktok|instagram|facebook|linkedin|shorts|reels)/i,
-    examples: ['Pull hooks from comments', 'Repurpose into posts', 'Draft platform captions', 'Find creator angles', 'Plan content batch'],
+    examples: ['Turn video into X thread', 'Pull 20 comment hooks', 'Draft Reels caption set', 'Make LinkedIn carousel outline', 'Plan 7 Shorts ideas'],
   },
   {
     pattern: /(browser|web)/i,
