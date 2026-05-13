@@ -451,6 +451,38 @@ describe('Codex CLI availability', () => {
 })
 
 describe('live error overlay', () => {
+  it('loads thread detail when resume fails for a routed historical provider thread', async () => {
+    installTestWindow()
+    gatewayMocks.resumeThread.mockRejectedValueOnce(new Error('Model provider `opencode_zen` not found'))
+    gatewayMocks.getThreadDetail.mockResolvedValueOnce({
+      messages: [
+        {
+          id: 'recovered-user',
+          role: 'user',
+          text: 'hi',
+          messageType: 'userMessage',
+        },
+      ],
+      inProgress: false,
+      activeTurnId: '',
+      turnIndexByTurnId: {},
+      hasMoreOlder: false,
+    })
+
+    const state = useDesktopState()
+    state.primeSelectedThread('historical-provider-thread')
+    await state.loadMessages('historical-provider-thread')
+
+    expect(gatewayMocks.resumeThread).toHaveBeenCalledWith('historical-provider-thread')
+    expect(gatewayMocks.getThreadDetail).toHaveBeenCalledWith('historical-provider-thread')
+    expect(state.messages.value).toEqual([
+      expect.objectContaining({
+        id: 'recovered-user',
+        text: 'hi',
+      }),
+    ])
+  })
+
   it('keeps a new live error visible when an older persisted turn error exists', async () => {
     installTestWindow()
     let notificationHandler: (notification: { method: string; params?: unknown }) => void = () => {}
