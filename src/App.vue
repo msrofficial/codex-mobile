@@ -1208,6 +1208,7 @@ type DirectoryTryItemPayload = {
   displayName: string
   skillPath?: string
   prompt?: string
+  tryKey?: string
   attachedSkills?: Array<{ name: string; path: string }>
 }
 
@@ -4478,7 +4479,7 @@ function buildDirectoryTryPrompt(payload: DirectoryTryItemPayload): string {
 }
 
 function getDirectoryTryItemKey(payload: DirectoryTryItemPayload): string {
-  return `${payload.kind}:${payload.name}:${payload.skillPath ?? ''}`
+  return payload.tryKey ?? `${payload.kind}:${payload.name}:${payload.skillPath ?? ''}:${payload.prompt ?? ''}`
 }
 
 async function onTryDirectoryItem(payload: DirectoryTryItemPayload): Promise<void> {

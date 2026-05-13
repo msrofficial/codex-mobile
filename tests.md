@@ -350,20 +350,22 @@ Plugin catalog popular examples.
 1. In light theme, open `/#/skills?tab=plugins`.
 2. Confirm plugin cards are sorted by `Popular` by default.
 3. Confirm the first plugin cards follow the hardcoded casual-user popularity order when those plugins are available, prioritizing email, calendar, Drive, Docs, Sheets, Notion, Obsidian, and social apps such as Reddit, X/Twitter, YouTube, Instagram, TikTok, Facebook, and LinkedIn before falling back to heuristic scoring.
-4. Confirm each visible plugin card shows five concrete example chips, such as `Find invoices due this week`, `Protect 3 focus blocks`, `Roll up weekly daily notes`, `Find 10 SaaS complaints`, or `Turn video into X thread`, instead of generic category/capability chips.
-5. Open an installed plugin detail and confirm the same five example chips are shown in the `Examples` section.
-6. Open a plugin that is not installed or is unavailable for install and confirm its example chips remain visible in the card and detail view.
-7. Search by text from an example chip and confirm matching plugins remain discoverable.
-8. Open the Apps tab and confirm `Popular` uses the hardcoded casual-user app order for available top entries, including social apps, then heuristic scoring for the rest; verify app cards show the same five creative example-chip style instead of category/plugin-name chips.
-9. Open the Composio tab after login and confirm `Popular` uses the hardcoded casual-user connector order for available top entries, including social connectors, then heuristic scoring for the rest; verify connector cards show creative example chips instead of only tool/auth metadata chips.
-10. Reload the app on a non-Skills route, wait two seconds, then open the Skills route and confirm Plugins, Apps, and the first Composio page use preloaded catalog data instead of showing a long initial loading pause.
-11. Use Refresh or perform a plugin install/uninstall/enable/disable action and confirm the catalog fetches fresh data instead of staying pinned to the preloaded cache.
-12. Switch to dark theme and repeat steps 1-11.
+4. Confirm each visible plugin card shows five concrete example buttons, such as `Find invoices due this week`, `Protect 3 focus blocks`, `Roll up weekly daily notes`, `Find 10 SaaS complaints`, or `Turn video into X thread`, instead of generic category/capability chips.
+5. Click one enabled plugin example button and confirm it starts a new chat with a task-specific prompt instead of the old generic `Try it!` prompt.
+6. Open an installed plugin detail and confirm the same five example buttons are shown in the `Examples` section and are clickable.
+7. Open a plugin that is not installed or is unavailable for install and confirm its example buttons remain visible but disabled until install/enable.
+8. Search by text from an example button and confirm matching plugins remain discoverable.
+9. Open the Apps tab and confirm `Popular` uses the hardcoded casual-user app order for available top entries, including social apps, then heuristic scoring for the rest; verify app cards show clickable example buttons instead of category/plugin-name chips and no generic `Try it!` button.
+10. Open the Composio tab after login and confirm `Popular` uses the hardcoded casual-user connector order for available top entries, including social connectors, then heuristic scoring for the rest; verify connector cards show clickable example buttons instead of only tool/auth metadata chips and no generic `Try it!` button.
+11. Reload the app on a non-Skills route, wait two seconds, then open the Skills route and confirm Plugins, Apps, and the first Composio page use preloaded catalog data instead of showing a long initial loading pause.
+12. Use Refresh or perform a plugin install/uninstall/enable/disable action and confirm the catalog fetches fresh data instead of staying pinned to the preloaded cache.
+13. Switch to dark theme and repeat steps 1-12.
 
 #### Expected Results
-- Plugin examples are visible before installation and are not gated by installed/enabled state.
+- Plugin examples are visible before installation, but only installed/enabled plugins run example tasks.
 - Popular plugin families show practical examples tailored to their domain.
 - Apps and Composio connector cards also show five domain-specific example chips for top everyday workflows.
+- Example chips replace generic card-level `Try it!` buttons and start task-specific chats when clicked.
 - Plugin, Apps, and Composio popular sorting put the hardcoded casual-user top 20 entries first when available, with browser, Chrome, and computer-use entries left to heuristic sorting instead of pinned ranking.
 - Rows outside the hardcoded top 20 continue to use the existing heuristic popularity score.
 - Plugin, Apps, and Composio catalog data is preloaded in the background and reused when opening the Skills route.

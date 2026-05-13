@@ -72,13 +72,11 @@
       <div v-else-if="isLoadingPlugins" class="directory-loading">Loading plugins...</div>
       <div v-else-if="visiblePlugins.length === 0" class="directory-empty">No plugins found.</div>
       <div v-else class="directory-grid">
-        <button
+        <article
           v-for="plugin in visiblePlugins"
           :key="plugin.id"
           class="directory-card"
           :class="{ 'is-disabled': plugin.installed && !plugin.enabled }"
-          type="button"
-          @click="openPluginDetail(plugin)"
         >
           <div class="directory-card-top">
             <img
@@ -101,10 +99,41 @@
             </div>
           </div>
           <p v-if="plugin.description" class="directory-card-description">{{ plugin.description }}</p>
-          <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
-            <span v-for="example in pluginExampleChips(plugin)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
+          <div class="directory-chip-row directory-example-chip-row" aria-label="Try example prompts">
+            <button
+              v-for="example in pluginExampleChips(plugin)"
+              :key="example"
+              class="directory-chip directory-example-chip"
+              type="button"
+              :disabled="!canTryPlugin(plugin) || isTryActionInFlight"
+              :title="canTryPlugin(plugin) ? `Start: ${example}` : 'Install and enable this plugin to run examples'"
+              @click.stop="tryPlugin(plugin, example)"
+            >
+              {{ props.tryInFlightKey === pluginTryKey(plugin, example) ? 'Starting...' : example }}
+            </button>
           </div>
-        </button>
+          <div class="directory-card-actions">
+            <button class="directory-action" type="button" @click="openPluginDetail(plugin)">
+              Details
+            </button>
+            <button
+              v-if="!plugin.installed"
+              class="directory-action primary"
+              type="button"
+              @click="openPluginDetail(plugin)"
+            >
+              Install to run
+            </button>
+            <button
+              v-else-if="!plugin.enabled"
+              class="directory-action"
+              type="button"
+              @click="openPluginDetail(plugin)"
+            >
+              Enable examples
+            </button>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -165,8 +194,18 @@
             </div>
           </div>
           <p v-if="app.description" class="directory-card-description">{{ app.description }}</p>
-          <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
-            <span v-for="example in appExampleChips(app)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
+          <div class="directory-chip-row directory-example-chip-row" aria-label="Try example prompts">
+            <button
+              v-for="example in appExampleChips(app)"
+              :key="example"
+              class="directory-chip directory-example-chip"
+              type="button"
+              :disabled="!canTryApp(app) || isTryActionInFlight"
+              :title="canTryApp(app) ? `Start: ${example}` : 'Connect and enable this app to run examples'"
+              @click="tryApp(app, example)"
+            >
+              {{ props.tryInFlightKey === appTryKey(app, example) ? 'Starting...' : example }}
+            </button>
           </div>
           <div class="directory-card-actions">
             <button class="directory-action" type="button" :disabled="appActionId === app.id" @click="toggleApp(app)">
@@ -174,15 +213,6 @@
             </button>
             <button v-if="app.installUrl" class="directory-action-link" type="button" @click="openExternalUrl(app.installUrl)">
               {{ app.isAccessible ? 'Manage' : 'Login' }}
-            </button>
-            <button
-              v-if="app.isAccessible && app.isEnabled"
-              class="directory-action"
-              type="button"
-              :disabled="isTryActionInFlight"
-              @click="tryApp(app)"
-            >
-              {{ props.tryInFlightKey === appTryKey(app) ? 'Starting...' : 'Try it!' }}
             </button>
           </div>
         </article>
@@ -322,8 +352,18 @@
               </div>
             </div>
             <p v-if="connector.description" class="directory-card-description">{{ connector.description }}</p>
-            <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
-              <span v-for="example in composioExampleChips(connector)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
+            <div class="directory-chip-row directory-example-chip-row" aria-label="Try example prompts">
+              <button
+                v-for="example in composioExampleChips(connector)"
+                :key="example"
+                class="directory-chip directory-example-chip"
+                type="button"
+                :disabled="!canTryComposio(connector) || isTryActionInFlight"
+                :title="canTryComposio(connector) ? `Start: ${example}` : 'Connect this connector to run examples'"
+                @click="tryComposio(connector, [], example)"
+              >
+                {{ props.tryInFlightKey === composioTryKey(connector.slug, example) ? 'Starting...' : example }}
+              </button>
             </div>
             <div class="directory-card-actions">
               <button class="directory-action" type="button" @click="openComposioDetail(connector.slug)">
@@ -337,15 +377,6 @@
                 @click="runComposioPrimaryAction(connector)"
               >
                 {{ composioActionSlug === connector.slug ? 'Opening...' : composioPrimaryActionLabel(connector) }}
-              </button>
-              <button
-                v-if="canTryComposio(connector)"
-                class="directory-action primary"
-                type="button"
-                :disabled="isTryActionInFlight"
-                @click="tryComposio(connector)"
-              >
-                {{ props.tryInFlightKey === composioTryKey(connector.slug) ? 'Starting...' : 'Try it!' }}
               </button>
             </div>
           </article>
@@ -448,7 +479,17 @@
               <div v-if="selectedPlugin" class="directory-detail-block">
                 <h4 class="directory-detail-heading">Examples</h4>
                 <div class="directory-chip-row directory-example-chip-row">
-                  <span v-for="example in pluginExampleChips(selectedPlugin)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
+                  <button
+                    v-for="example in pluginExampleChips(selectedPlugin)"
+                    :key="example"
+                    class="directory-chip directory-example-chip"
+                    type="button"
+                    :disabled="!canTryPlugin(selectedPlugin) || isTryActionInFlight"
+                    :title="canTryPlugin(selectedPlugin) ? `Start: ${example}` : 'Install and enable this plugin to run examples'"
+                    @click="tryPlugin(selectedPlugin, example)"
+                  >
+                    {{ props.tryInFlightKey === pluginTryKey(selectedPlugin, example) ? 'Starting...' : example }}
+                  </button>
                 </div>
               </div>
 
@@ -543,15 +584,6 @@
             >
               {{ selectedPlugin.enabled ? 'Disable' : 'Enable' }}
             </button>
-            <button
-              v-if="selectedPlugin && selectedPlugin.installed && selectedPlugin.enabled"
-              class="directory-action primary"
-              type="button"
-              :disabled="isPluginActionInFlight || isTryActionInFlight"
-              @click="tryPlugin(selectedPlugin)"
-            >
-              {{ props.tryInFlightKey === pluginTryKey(selectedPlugin) ? 'Starting...' : 'Try it!' }}
-            </button>
           </div>
         </article>
       </div>
@@ -585,6 +617,23 @@
               <p v-if="selectedComposioDetail.connector.description" class="directory-detail-description">
                 {{ selectedComposioDetail.connector.description }}
               </p>
+
+              <div class="directory-detail-block">
+                <h4 class="directory-detail-heading">Examples</h4>
+                <div class="directory-chip-row directory-example-chip-row">
+                  <button
+                    v-for="example in composioExampleChips(selectedComposioDetail.connector)"
+                    :key="example"
+                    class="directory-chip directory-example-chip"
+                    type="button"
+                    :disabled="!canTryComposio(selectedComposioDetail.connector) || isTryActionInFlight"
+                    :title="canTryComposio(selectedComposioDetail.connector) ? `Start: ${example}` : 'Connect this connector to run examples'"
+                    @click="tryComposio(selectedComposioDetail.connector, selectedComposioDetail.connections, example)"
+                  >
+                    {{ props.tryInFlightKey === composioTryKey(selectedComposioDetail.connector.slug, example) ? 'Starting...' : example }}
+                  </button>
+                </div>
+              </div>
 
               <div class="directory-detail-grid">
                 <div class="directory-detail-block">
@@ -643,15 +692,6 @@
               @click="runComposioPrimaryAction(selectedComposioDetail.connector)"
             >
               {{ composioActionSlug === selectedComposioDetail?.connector.slug ? 'Opening...' : composioPrimaryActionLabel(selectedComposioDetail.connector) }}
-            </button>
-            <button
-              v-if="selectedComposioDetail && canTryComposio(selectedComposioDetail.connector)"
-              class="directory-action primary"
-              type="button"
-              :disabled="isTryActionInFlight"
-              @click="tryComposio(selectedComposioDetail.connector, selectedComposioDetail.connections)"
-            >
-              {{ props.tryInFlightKey === composioTryKey(selectedComposioDetail.connector.slug) ? 'Starting...' : 'Try it!' }}
             </button>
           </div>
         </article>
@@ -877,6 +917,7 @@ export type DirectoryTryItemPayload = {
   displayName: string
   skillPath?: string
   prompt?: string
+  tryKey?: string
   attachedSkills?: Array<{ name: string; path: string }>
 }
 
@@ -1451,33 +1492,54 @@ function composioConnectionStatusClass(status: string): string {
   return 'is-muted'
 }
 
-function appTryKey(app: DirectoryAppInfo): string {
-  return `app:${app.id}:`
+function appTryKey(app: DirectoryAppInfo, example = ''): string {
+  return `app:${app.id}:${example}`
 }
 
-function tryApp(app: DirectoryAppInfo): void {
+function canTryApp(app: DirectoryAppInfo): boolean {
+  return app.isAccessible && app.isEnabled
+}
+
+function buildExamplePrompt(displayName: string, itemType: string, example: string): string {
+  const label = displayName.trim()
+  const task = example.trim()
+  if (!task) return `Test ${label} ${itemType}. Give me a list of what it can do and one useful example.`
+  return `Use ${label} ${itemType} to do this concrete task: ${task}. Do not ask me to fill in placeholders first; inspect what is available, make reasonable assumptions, and show the result or the exact next action you took.`
+}
+
+function tryApp(app: DirectoryAppInfo, example = ''): void {
   if (isTryActionInFlight.value) return
+  if (!canTryApp(app)) return
   emit('try-item', {
     kind: 'app',
     name: app.id,
     displayName: app.name,
+    prompt: buildExamplePrompt(app.name, 'app', example),
+    tryKey: appTryKey(app, example),
   })
 }
 
-function pluginTryKey(plugin: DirectoryPluginSummary): string {
-  return `plugin:${plugin.name}:`
+function pluginTryKey(plugin: DirectoryPluginSummary, example = ''): string {
+  return `plugin:${plugin.name}:${example}`
 }
 
-function composioTryKey(slug: string): string {
-  return `composio:${slug}:`
+function composioTryKey(slug: string, example = ''): string {
+  return `composio:${slug}:${example}`
 }
 
-function tryPlugin(plugin: DirectoryPluginSummary): void {
+function canTryPlugin(plugin: DirectoryPluginSummary): boolean {
+  return plugin.installed && plugin.enabled
+}
+
+function tryPlugin(plugin: DirectoryPluginSummary, example = ''): void {
   if (isTryActionInFlight.value) return
+  if (!canTryPlugin(plugin)) return
   emit('try-item', {
     kind: 'plugin',
     name: plugin.name,
     displayName: plugin.displayName,
+    prompt: buildExamplePrompt(plugin.displayName, 'plugin', example),
+    tryKey: pluginTryKey(plugin, example),
   })
 }
 
@@ -1485,21 +1547,27 @@ function canTryComposio(connector: DirectoryComposioConnector): boolean {
   return composioHasUsableConnection(connector)
 }
 
-function buildComposioTryPrompt(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = []): string {
+function buildComposioTryPrompt(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = [], example = ''): string {
   const firstActive = connections.find((connection) => connection.status === 'ACTIVE' && !connection.isDisabled)
   const accountHint = firstActive?.wordId
     ? ` If there are multiple accounts, prefer \`${firstActive.wordId}\`.`
     : ''
+  const task = example.trim()
+  if (task) {
+    return `Use the Composio CLI skill with the ${connector.name} connector (${connector.slug}) to do this concrete task: ${task}. Do not ask me to fill in placeholders first; inspect available tools/connections, make reasonable assumptions, and show the result or the exact next action you took.${accountHint}`
+  }
   return `Use the Composio CLI skill with the ${connector.name} connector (${connector.slug}). Start by listing what it can do here, mention the current connection status, and suggest one safe command I can run now.${accountHint}`
 }
 
-function tryComposio(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = []): void {
+function tryComposio(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = [], example = ''): void {
   if (isTryActionInFlight.value) return
+  if (!canTryComposio(connector)) return
   emit('try-item', {
     kind: 'composio',
     name: connector.slug,
     displayName: connector.name,
-    prompt: buildComposioTryPrompt(connector, connections),
+    prompt: buildComposioTryPrompt(connector, connections, example),
+    tryKey: composioTryKey(connector.slug, example),
     attachedSkills: [{ name: 'composio-cli', path: COMPOSIO_SKILL_PATH }],
   })
 }
@@ -2169,7 +2237,7 @@ button.directory-card {
 }
 
 .directory-example-chip {
-  @apply border-blue-100 bg-blue-50 text-blue-700;
+  @apply cursor-pointer border-blue-100 bg-blue-50 text-blue-700 transition hover:border-blue-200 hover:bg-blue-100 hover:text-blue-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400 disabled:opacity-70;
 }
 
 .directory-card-actions {
