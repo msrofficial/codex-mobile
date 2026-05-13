@@ -2,48 +2,9 @@
 
 ## Open Docker Provider Tasks
 
-These tasks come from the packaged Docker Browser cycle on 2026-05-13. Keep each task here until a fresh packaged Docker run proves it passes with browser screenshots and network evidence.
+These tasks come from packaged Docker Browser cycles. Keep each task here until a fresh packaged Docker run proves it passes with browser screenshots and network evidence.
 
-### [ ] P0 - Continue or safely block historical threads after provider switch
-
-**Environment**
-
-- Packaged Docker image built from the current branch.
-- Auth-mounted container, preferably on `http://127.0.0.1:4192/#/`.
-
-**Current evidence**
-
-- Browser screenshots:
-  - `output/playwright/docker-provider-switch-zen-dropdown-fixed.png`
-  - `output/playwright/docker-provider-switch-zen-result-fixed.png`
-  - `output/playwright/docker-provider-switch-openrouter-result.png`
-- URL remained stable after the route-continuity fix.
-- Conversation remained visible.
-- Sending after `Codex -> OpenCode Zen` failed with `RPC turn/start failed with HTTP 502: thread not found: <thread-id>`.
-
-**Repro**
-
-1. Start an auth/Codex container with a fresh isolated `CODEX_HOME`.
-2. Open a Codex thread and record the full `#/thread/<thread-id>` URL.
-3. Switch Settings provider from `Codex` to `OpenCode Zen`.
-4. Confirm the URL still contains the same thread id and the conversation is visible.
-5. Send `hi provider opencode zen`.
-
-**Pass criteria**
-
-- The URL stays on the same `#/thread/<thread-id>` route.
-- The visible conversation remains in place.
-- The UI either:
-  - successfully continues the thread using the active provider, or
-  - blocks sending before `turn/start` with a clear message and a safe new-thread path.
-- The chat must not render a raw `thread not found` backend failure after the user presses Send.
-
-**Validation evidence to capture**
-
-- Browser screenshot before provider switch.
-- Browser screenshot after provider switch with the same thread URL visible.
-- Browser screenshot after sending or after the explicit blocked-send state.
-- Network evidence for `/codex-api/free-mode/status`, `/codex-api/provider-models`, and the send path.
+Passed and removed on 2026-05-13: continuing a historical Codex thread after `Codex -> OpenCode Zen` provider switch. Fresh evidence showed the same `#/thread/019e2117-b1dc-7401-804f-b86fadc97604` route stayed visible and `hi provider opencode zen` returned an assistant reply without a raw `thread not found` error.
 
 ### [ ] P0 - OpenRouter selected state must not fall back to Codex models silently
 
@@ -55,12 +16,14 @@ These tasks come from the packaged Docker Browser cycle on 2026-05-13. Keep each
 
 **Current evidence**
 
+- Fresh run: packaged image `codexapp-provider-exec:local`, auth-mounted container on `http://127.0.0.1:4292/#/`.
 - Browser screenshots:
-  - `output/playwright/docker-provider-switch-openrouter-settings.png`
-  - `output/playwright/docker-provider-switch-openrouter-dropdown.png`
-- `/codex-api/free-mode/status` returned `enabled=false`, `hasCodexAuth=true`, `provider=openrouter`.
-- `/codex-api/provider-models` returned `source=provider`, `providerId=""`, `count=0`.
-- Settings showed `OpenRouter`, but the composer dropdown still showed Codex models such as `GPT-5.5` and `GPT-5.4`.
+  - `output/playwright/docker-exec-openrouter-before-dropdown.png`
+  - `output/playwright/docker-exec-openrouter-dropdown.png`
+- `/codex-api/free-mode/status` returned `enabled=true`, `hasCodexAuth=true`, `provider=openrouter`, `currentModel=big-pickle`, `wireApi=responses`.
+- `/codex-api/provider-models` returned `exclusive=true`, `count=26`, first models including `openrouter/free`, `inclusionai/ring-2.6-1t:free`, and `baidu/cobuddy:free`.
+- The composer model button still showed stale `big-pickle`.
+- The dropdown showed OpenRouter models but also appended stale `big-pickle`.
 
 **Repro**
 
@@ -99,14 +62,16 @@ These tasks come from the packaged Docker Browser cycle on 2026-05-13. Keep each
 
 **Current evidence**
 
+- Fresh run: packaged image `codexapp-provider-exec:local`, auth-mounted container on `http://127.0.0.1:4292/#/`.
 - Browser screenshots:
-  - `output/playwright/docker-provider-switch-custom-nim-dropdown.png`
-  - `output/playwright/docker-provider-switch-custom-nim-result.png`
-- `/codex-api/free-mode/status` returned `enabled=true`, `provider=custom`, `customBaseUrl=https://integrate.api.nvidia.com/v1`, `wireApi=chat`.
-- `/codex-api/provider-models` returned `source=custom`, `exclusive=true`, and 123 models.
-- UI dropdown still showed Codex models.
-- Searching for `moonshotai/kimi-k2.5` returned no results even though model discovery succeeded.
-- Sending failed against the Responses path: `http://127.0.0.1:4192/codex-api/custom-proxy/v1/responses`.
+  - `output/playwright/docker-exec-nim-home-stale-model.png`
+  - `output/playwright/docker-exec-nim-dropdown-stale.png`
+  - `output/playwright/docker-exec-nim-new-thread-send.png`
+- `/codex-api/free-mode/status` returned `enabled=true`, `provider=custom`, `currentModel=01-ai/yi-large`, `customBaseUrl=https://integrate.api.nvidia.com/v1`, `wireApi=chat`.
+- `/codex-api/provider-models` returned `source=custom`, `exclusive=true`, `count=123`, first models including `01-ai/yi-large`, `abacusai/dracarys-llama-3.1-70b-instruct`, and `adept/fuyu-8b`.
+- The home composer still showed stale `big-pickle` instead of the NIM model.
+- The dropdown did not show `01-ai/yi-large` in the tested UI state.
+- Sending a new thread with `hi provider nvidia nim new thread` failed against the Responses path: `http://127.0.0.1:4190/codex-api/custom-proxy/v1/responses`.
 
 **Repro**
 
@@ -149,7 +114,8 @@ These tasks come from the packaged Docker Browser cycle on 2026-05-13. Keep each
 **Current evidence**
 
 - Local KeePass registry had OpenRouter and NVIDIA keys, but no Groq key entry was found during the 2026-05-13 run.
-- No valid Groq send test was completed.
+- A fresh 2026-05-13 key lookup still found no Groq key entry.
+- No valid Groq send test has been completed.
 
 **Repro**
 
