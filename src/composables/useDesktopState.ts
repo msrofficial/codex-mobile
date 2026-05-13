@@ -1647,12 +1647,21 @@ export function useDesktopState() {
     }
   }
 
+  function ensureCompatibleAvailableModelIds(...modelIds: string[]): void {
+    const compatibleModelIds = modelIds
+      .map((modelId) => modelId.trim())
+      .filter((modelId) => modelId && availableModelIds.value.includes(modelId))
+    if (compatibleModelIds.length > 0) {
+      ensureAvailableModelIds(...compatibleModelIds)
+    }
+  }
+
   function setSelectedThreadId(nextThreadId: string): void {
     if (selectedThreadId.value === nextThreadId) return
     selectedThreadId.value = nextThreadId
     saveSelectedThreadId(nextThreadId)
     selectedModelId.value = readModelIdForThread(nextThreadId)
-    ensureAvailableModelIds(selectedModelId.value)
+    ensureCompatibleAvailableModelIds(selectedModelId.value)
     selectedCollaborationMode.value = readSelectedCollaborationMode(
       selectedCollaborationModeByContext.value,
       nextThreadId,
@@ -1686,9 +1695,9 @@ export function useDesktopState() {
     }
     if (threadId.trim() === selectedThreadId.value) {
       selectedModelId.value = readModelIdForThread(selectedThreadId.value)
-      ensureAvailableModelIds(selectedModelId.value)
+      ensureCompatibleAvailableModelIds(selectedModelId.value)
     } else {
-      ensureAvailableModelIds(normalizedModelId)
+      ensureCompatibleAvailableModelIds(normalizedModelId)
     }
     saveSelectedModelMap(selectedModelIdByContext.value)
   }
@@ -1709,7 +1718,7 @@ export function useDesktopState() {
     } else {
       selectedModelIdByContext.value = omitStringKeyedRecordKey(selectedModelIdByContext.value, normalizedThreadId)
     }
-    ensureAvailableModelIds(normalizedModelId)
+    ensureCompatibleAvailableModelIds(normalizedModelId)
     if (selectedThreadId.value === normalizedThreadId) {
       selectedModelId.value = readModelIdForThread(selectedThreadId.value)
     }
@@ -1931,8 +1940,8 @@ export function useDesktopState() {
       availableModelIds.value = [...modelIds]
       const normalizedSelectedModelId = readModelIdForThread(selectedThreadId.value)
       const nextModelIds = [...modelIds]
-      if (!options?.providerChanged) {
-        const extraModelIds = isProviderBacked ? [normalizedConfiguredModelId] : [normalizedConfiguredModelId]
+      if (!options?.providerChanged && !isProviderBacked) {
+        const extraModelIds = [normalizedConfiguredModelId]
         for (const modelId of extraModelIds) {
           if (modelId && !nextModelIds.includes(modelId)) {
             nextModelIds.push(modelId)

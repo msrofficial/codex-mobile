@@ -791,6 +791,72 @@ describe('provider model selection', () => {
     expect(state.availableModelIds.value).not.toContain('openrouter-model')
     expect(state.selectedModelId.value).toBe('gpt-5.5')
   })
+
+  it('does not append a stale configured OpenCode Zen model to OpenRouter models', async () => {
+    installTestWindow({
+      'codex-web-local.selected-model-by-context.v1': JSON.stringify({
+        '__new-thread-provider__::opencode-zen': { providerId: 'opencode-zen', modelId: 'big-pickle' },
+      }),
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({ groups: [], nextCursor: null })
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([{ value: 'default', label: 'Default' }])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+    gatewayMocks.getAccountRateLimits.mockResolvedValue(null)
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'big-pickle',
+      providerId: 'openrouter',
+      reasoningEffort: 'medium',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue([
+      'openrouter/free',
+      'inclusionai/ring-2.6-1t:free',
+    ])
+
+    const state = useDesktopState()
+    await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
+
+    expect(state.availableModelIds.value).toEqual([
+      'openrouter/free',
+      'inclusionai/ring-2.6-1t:free',
+    ])
+    expect(state.availableModelIds.value).not.toContain('big-pickle')
+    expect(state.selectedModelId.value).toBe('openrouter/free')
+    expect(state.readModelIdForThread('').trim()).toBe('openrouter/free')
+  })
+
+  it('does not append a stale configured model to custom provider models', async () => {
+    installTestWindow({
+      'codex-web-local.selected-model-by-context.v1': JSON.stringify({
+        '__new-thread-provider__::opencode-zen': { providerId: 'opencode-zen', modelId: 'big-pickle' },
+      }),
+    })
+    gatewayMocks.getThreadGroupsPage.mockResolvedValue({ groups: [], nextCursor: null })
+    gatewayMocks.getAvailableCollaborationModes.mockResolvedValue([{ value: 'default', label: 'Default' }])
+    gatewayMocks.getSkillsList.mockResolvedValue([])
+    gatewayMocks.getAccountRateLimits.mockResolvedValue(null)
+    gatewayMocks.getCurrentModelConfig.mockResolvedValue({
+      model: 'big-pickle',
+      providerId: 'custom_endpoint',
+      reasoningEffort: 'medium',
+      speedMode: 'standard',
+    })
+    gatewayMocks.getAvailableModelIds.mockResolvedValue([
+      '01-ai/yi-large',
+      'abacusai/dracarys-llama-3.1-70b-instruct',
+    ])
+
+    const state = useDesktopState()
+    await state.refreshAll({ includeSelectedThreadMessages: false, awaitAncillaryRefreshes: true })
+
+    expect(state.availableModelIds.value).toEqual([
+      '01-ai/yi-large',
+      'abacusai/dracarys-llama-3.1-70b-instruct',
+    ])
+    expect(state.availableModelIds.value).not.toContain('big-pickle')
+    expect(state.selectedModelId.value).toBe('01-ai/yi-large')
+    expect(state.readModelIdForThread('').trim()).toBe('01-ai/yi-large')
+  })
 })
 
 describe('findAdjacentThreadId', () => {

@@ -5569,3 +5569,39 @@ Keep the currently routed thread selected when a refreshed thread list omits it.
 
 #### Rollback/Cleanup
 - Restore the original provider after verification if it was changed for the test.
+
+---
+
+### Provider-backed model list authority
+
+#### Feature/Change Name
+Provider-backed model lists reject stale configured and resumed models.
+
+#### Prerequisites/Setup
+1. Build the packaged app with `pnpm run build` and `pnpm pack --pack-destination /tmp`.
+2. Build a Docker image from the packed tarball plus `@openai/codex`.
+3. Start an auth-mounted container with isolated `CODEX_HOME` on a unique localhost port.
+4. Have OpenRouter and NVIDIA NIM keys available for the container.
+
+#### Steps
+1. In light theme, configure OpenRouter with a valid key and refresh the app.
+2. Open the model dropdown.
+3. Confirm the selected model is `openrouter/free` or another OpenRouter model, and `big-pickle` is absent.
+4. Configure custom provider with `baseUrl=https://integrate.api.nvidia.com/v1` and `wireApi=chat`.
+5. Open the model dropdown.
+6. Confirm the selected model is `01-ai/yi-large` or another NIM model, and `big-pickle` is absent.
+7. Send `hi provider nvidia nim fixed`.
+8. Repeat dropdown checks in dark theme.
+
+#### Expected Results
+- Provider-backed model lists are authoritative and do not append stale configured models from another provider.
+- OpenRouter dropdown contains OpenRouter models only.
+- NIM dropdown contains NIM models only.
+- Custom chat providers keep Codex app-server configured as local Responses while the custom proxy translates to chat completions upstream.
+- NIM send produces either an assistant reply or the exact upstream error in chat.
+- There is no `messages field cannot be empty` error.
+- Light theme and dark theme render selected model labels and dropdown rows clearly.
+
+#### Rollback/Cleanup
+- Stop the temporary container and remove its isolated `CODEX_HOME`.
+- Remove temporary API key files.

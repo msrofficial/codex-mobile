@@ -101,6 +101,23 @@ describe('unauthenticated free mode defaults', () => {
     expect(args).toContain('model_providers.openrouter_free.base_url="http://127.0.0.1:4173/codex-api/openrouter-proxy/v1"')
   })
 
+  it('keeps Codex app-server on responses wire API for custom chat providers', () => {
+    const args = getFreeModeConfigArgs({
+      enabled: true,
+      apiKey: 'nvapi-test',
+      model: '01-ai/yi-large',
+      customKey: true,
+      provider: 'custom',
+      customBaseUrl: 'https://integrate.api.nvidia.com/v1',
+      wireApi: 'chat',
+    }, 4173)
+
+    expect(args).toContain('model_provider="custom_endpoint"')
+    expect(args).toContain('model="01-ai/yi-large"')
+    expect(args).toContain('model_providers.custom_endpoint.base_url="http://127.0.0.1:4173/codex-api/custom-proxy/v1"')
+    expect(args).toContain('model_providers.custom_endpoint.wire_api="responses"')
+  })
+
   it('does not replace an intentionally disabled free mode state', () => {
     expect(shouldCreateDefaultFreeModeStateForMissingAuth({
       enabled: false,
