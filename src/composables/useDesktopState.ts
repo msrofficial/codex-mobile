@@ -4321,8 +4321,6 @@ export function useDesktopState() {
 
       if (resumedThread) {
         setThreadModelId(threadId, resumedThread.model)
-      }
-      if (resumedThread || needsResume) {
         resumedThreadById.value = {
           ...resumedThreadById.value,
           [threadId]: true,
@@ -4497,6 +4495,11 @@ export function useDesktopState() {
     codexCliMissingError.value = ''
     const includeSelectedThreadMessages = options.includeSelectedThreadMessages !== false
     const awaitAncillaryRefreshes = options.awaitAncillaryRefreshes === true
+
+    if (options.providerChanged) {
+      resumedThreadById.value = {}
+      loadedMessagesByThreadId.value = {}
+    }
 
     try {
       await loadPersistedQueueStateIfNeeded()
@@ -4948,23 +4951,42 @@ export function useDesktopState() {
       fallbackRetried: false,
     })
 
+    let activeThreadId = threadId
     try {
-      if (resumedThreadById.value[threadId] !== true) {
+      let resumeFailedWithMissingProvider = false
+      if (resumedThreadById.value[activeThreadId] !== true) {
         try {
-          const resumedThread = await resumeThread(threadId)
-          setThreadModelId(threadId, resumedThread.model)
+          const resumedThread = await resumeThread(activeThreadId)
+          setThreadModelId(activeThreadId, resumedThread.model)
         } catch (unknownError) {
           if (!isMissingHistoricalProviderError(unknownError)) {
             throw unknownError
           }
+          resumeFailedWithMissingProvider = true
         }
       }
-      const modelId = readModelIdForThread(threadId)
+
+      if (resumeFailedWithMissingProvider) {
+        const sourceThread = flattenThreads(sourceGroups.value).find((row) => row.id === activeThreadId)
+        const sourceCwd = sourceThread?.cwd?.trim() ?? ''
+        const modelId = readModelIdForThread(activeThreadId)
+        const freshThread = await startThread(sourceCwd || undefined, modelId || undefined)
+        const freshId = freshThread.threadId.trim()
+        if (freshId) {
+          insertOptimisticThread(freshId, sourceCwd, sourceThread?.title ?? '')
+          setThreadModelId(freshId, freshThread.model)
+          resumedThreadById.value = { ...resumedThreadById.value, [freshId]: true }
+          setSelectedThreadId(freshId)
+          activeThreadId = freshId
+        }
+      }
+
+      const modelId = readModelIdForThread(activeThreadId)
 
       let startedTurnId = ''
       try {
         startedTurnId = await startThreadTurn(
-          threadId,
+          activeThreadId,
           nextText,
           normalizedImageUrls,
           modelId || undefined,
@@ -4975,8 +4997,8 @@ export function useDesktopState() {
         )
       } catch (unknownError) {
         if (modelId && modelId !== MODEL_FALLBACK_ID && isUnsupportedChatGptModelError(unknownError)) {
-          await applyFallbackModelSelection(threadId)
-          setPendingTurnRequest(threadId, {
+          await applyFallbackModelSelection(activeThreadId)
+          setPendingTurnRequest(activeThreadId, {
             text: normalizedText,
             imageUrls: [...normalizedImageUrls],
             skills: normalizedSkills,
@@ -4986,7 +5008,7 @@ export function useDesktopState() {
             fallbackRetried: true,
           })
           startedTurnId = await startThreadTurn(
-            threadId,
+            activeThreadId,
             nextText,
             normalizedImageUrls,
             MODEL_FALLBACK_ID,
@@ -5003,19 +5025,19 @@ export function useDesktopState() {
       if (startedTurnId) {
         activeTurnIdByThreadId.value = {
           ...activeTurnIdByThreadId.value,
-          [threadId]: startedTurnId,
+          [activeThreadId]: startedTurnId,
         }
-        maybeUnblockInterruptForActiveTurn(threadId, startedTurnId)
+        maybeUnblockInterruptForActiveTurn(activeThreadId, startedTurnId)
       }
 
       resumedThreadById.value = {
         ...resumedThreadById.value,
-        [threadId]: true,
+        [activeThreadId]: true,
       }
 
-      pendingThreadMessageRefresh.add(threadId)
+      pendingThreadMessageRefresh.add(activeThreadId)
       await syncFromNotifications()
-      scheduleDelayedTurnSync(threadId)
+      scheduleDelayedTurnSync(activeThreadId)
     } catch (unknownError) {
       throw unknownError
     }

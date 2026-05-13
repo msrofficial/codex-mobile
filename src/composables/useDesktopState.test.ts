@@ -483,9 +483,14 @@ describe('live error overlay', () => {
     ])
   })
 
-  it('starts a new turn with the active model when historical provider resume fails', async () => {
+  it('creates fresh thread and starts turn with active model when historical provider resume fails', async () => {
     installTestWindow()
     gatewayMocks.resumeThread.mockRejectedValueOnce(new Error('Model provider `opencode_zen` not found'))
+    gatewayMocks.startThread.mockResolvedValueOnce({
+      threadId: 'fresh-thread',
+      cwd: '/workspace',
+      model: 'gpt-5.5',
+    })
     gatewayMocks.startThreadTurn.mockResolvedValueOnce('gpt-turn')
 
     const state = useDesktopState()
@@ -495,8 +500,9 @@ describe('live error overlay', () => {
     await state.sendMessageToSelectedThread('hi from gpt')
 
     expect(gatewayMocks.resumeThread).toHaveBeenCalledWith('historical-provider-thread')
+    expect(gatewayMocks.startThread).toHaveBeenCalled()
     expect(gatewayMocks.startThreadTurn).toHaveBeenCalledWith(
-      'historical-provider-thread',
+      'fresh-thread',
       'hi from gpt',
       [],
       'gpt-5.5',
