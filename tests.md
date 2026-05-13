@@ -356,13 +356,17 @@ Plugin catalog popular examples.
 7. Search by text from an example chip and confirm matching plugins remain discoverable.
 8. Open the Apps tab and confirm `Popular` uses the hardcoded casual-user app order for available top entries, then heuristic scoring for the rest.
 9. Open the Composio tab after login and confirm `Popular` uses the hardcoded casual-user connector order for available top entries, then heuristic scoring for the rest.
-10. Switch to dark theme and repeat steps 1-9.
+10. Reload the app on a non-Skills route, wait two seconds, then open the Skills route and confirm Plugins, Apps, and the first Composio page use preloaded catalog data instead of showing a long initial loading pause.
+11. Use Refresh or perform a plugin install/uninstall/enable/disable action and confirm the catalog fetches fresh data instead of staying pinned to the preloaded cache.
+12. Switch to dark theme and repeat steps 1-11.
 
 #### Expected Results
 - Plugin examples are visible before installation and are not gated by installed/enabled state.
 - Popular plugin families show practical examples tailored to their domain.
 - Plugin, Apps, and Composio popular sorting put the hardcoded casual-user top 20 entries first when available.
 - Rows outside the hardcoded top 20 continue to use the existing heuristic popularity score.
+- Plugin, Apps, and Composio catalog data is preloaded in the background and reused when opening the Skills route.
+- Manual refresh and plugin mutation flows bypass the preload cache and update from backend truth.
 - Plugins without recognized domains still show five fallback examples derived from default prompts, capabilities, or safe generic actions.
 - Example chips remain readable in light theme and dark theme.
 

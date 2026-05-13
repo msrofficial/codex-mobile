@@ -1144,6 +1144,10 @@ import {
   getThreadTerminalQuickCommands,
   getThreadTerminalStatus,
   getWorkspaceRootsState,
+  getDirectoryComposioStatus,
+  listDirectoryApps,
+  listDirectoryComposioConnectors,
+  listDirectoryPlugins,
   listLocalDirectories,
   openProjectRoot,
   persistFirstLaunchPluginsCardPreference,
@@ -2010,6 +2014,9 @@ onMounted(() => {
   void loadFreeModeStatus()
   void refreshThreadTerminalStatus()
   void refreshTerminalQuickCommands()
+  window.setTimeout(() => {
+    void preloadDirectoryCatalogs()
+  }, 1500)
 })
 
 watch(visibleFeedbackErrors, (values, oldValues) => {
@@ -4152,6 +4159,24 @@ function normalizeMessageType(rawType: string | undefined, role: string): string
 
 function onSelectCollaborationMode(mode: 'default' | 'plan'): void {
   setSelectedCollaborationMode(mode)
+}
+
+async function preloadDirectoryCatalogs(): Promise<void> {
+  const cwd = directoryCwd.value.trim()
+  const threadId = routeThreadId.value.trim()
+  try {
+    const composioStatusPromise = getDirectoryComposioStatus()
+    await Promise.allSettled([
+      listDirectoryPlugins(cwd ? [cwd] : undefined),
+      listDirectoryApps(threadId || undefined),
+      composioStatusPromise.then(async (status) => {
+        if (!status.available || !status.authenticated) return
+        await listDirectoryComposioConnectors('', null, 50)
+      }),
+    ])
+  } catch {
+    // Background preloading should never block normal navigation.
+  }
 }
 
 async function initialize(): Promise<void> {

@@ -1492,7 +1492,7 @@ async function loadPlugins(force = false): Promise<void> {
     pluginError.value = ''
     try {
       const [nextPlugins] = await Promise.all([
-        listDirectoryPlugins(key ? [key] : undefined),
+        listDirectoryPlugins(key ? [key] : undefined, { force }),
         supportsApps.value ? loadApps(force) : Promise.resolve(),
       ])
       plugins.value = nextPlugins
@@ -1516,7 +1516,7 @@ async function loadApps(force = false): Promise<void> {
     isLoadingApps.value = true
     appError.value = ''
     try {
-      apps.value = await listDirectoryApps(key || undefined)
+      apps.value = await listDirectoryApps(key || undefined, { force })
       appsLoadedKey = key
     } catch (error) {
       appError.value = error instanceof Error ? error.message : 'Failed to load apps'
@@ -1528,7 +1528,7 @@ async function loadApps(force = false): Promise<void> {
   return appsLoadPromise
 }
 
-async function loadComposio(append = false): Promise<void> {
+async function loadComposio(append = false, force = false): Promise<void> {
   if (isLoadingComposio.value) {
     isComposioLoadQueued = true
     return
@@ -1537,7 +1537,7 @@ async function loadComposio(append = false): Promise<void> {
   isLoadingComposio.value = true
   composioError.value = ''
   try {
-    const status = await getDirectoryComposioStatus()
+    const status = await getDirectoryComposioStatus({ force })
     composioStatus.value = status
     if (!status.available || !status.authenticated) {
       composioConnectors.value = []
@@ -1546,7 +1546,7 @@ async function loadComposio(append = false): Promise<void> {
       return
     }
     const cursor = append ? composioNextCursor.value : null
-    const page = await listDirectoryComposioConnectors(composioSearchQuery.value, cursor, COMPOSIO_PAGE_LIMIT)
+    const page = await listDirectoryComposioConnectors(composioSearchQuery.value, cursor, COMPOSIO_PAGE_LIMIT, { force })
     composioConnectors.value = append ? [...composioConnectors.value, ...page.data] : page.data
     composioNextCursor.value = page.nextCursor
     composioTotal.value = page.total
@@ -1594,7 +1594,7 @@ async function refreshMcpStatusesForPluginDetail(): Promise<void> {
 function refreshActiveTab(forceReload = false): void {
   if (activeTab.value === 'plugins') void loadPlugins(forceReload)
   if (activeTab.value === 'apps') void loadApps(forceReload)
-  if (activeTab.value === 'composio') void loadComposio()
+  if (activeTab.value === 'composio') void loadComposio(false, forceReload)
   if (activeTab.value === 'skills') {
     if (forceReload && supportsMcpReload.value) void reloadMcps()
     else void loadMcps()
@@ -1606,7 +1606,7 @@ async function manualRefreshActiveTab(): Promise<void> {
   try {
     if (activeTab.value === 'plugins') await loadPlugins(true)
     else if (activeTab.value === 'apps') await loadApps(true)
-    else if (activeTab.value === 'composio') await loadComposio()
+    else if (activeTab.value === 'composio') await loadComposio(false, true)
     else if (activeTab.value === 'skills' && supportsMcpReload.value) await reloadMcps()
     else if (activeTab.value === 'skills') await loadMcps()
   } finally {
@@ -1692,7 +1692,7 @@ async function startComposioConnect(connector: DirectoryComposioConnector): Prom
     }
     openExternalUrl(result.redirectUrl)
     showToast(`Opened ${connector.name} authorization`)
-    await loadComposio()
+    await loadComposio(false, true)
     if (isComposioDetailOpen.value && selectedComposioDetail.value?.connector.slug === connector.slug) {
       await openComposioDetail(connector.slug)
     }
