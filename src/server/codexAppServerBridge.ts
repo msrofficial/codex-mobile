@@ -5898,9 +5898,9 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
         let bearerToken = ''
         let wireApi: 'responses' | 'chat' = 'chat'
         try {
-          const state = JSON.parse(readFileSync(statePath, 'utf8')) as FreeModeState
-          bearerToken = state.apiKey ?? ''
-          wireApi = state.wireApi === 'responses' ? 'responses' : 'chat'
+          const state = ensureDefaultFreeModeStateForMissingAuthSync(statePath)
+          bearerToken = state?.apiKey ?? ''
+          wireApi = state?.wireApi === 'responses' ? 'responses' : 'chat'
         } catch { /* use empty */ }
         handleZenProxyRequest(req, res, bearerToken, wireApi)
         return
@@ -5925,10 +5925,10 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
         let wireApi: 'responses' | 'chat' = 'responses'
         let baseUrl = ''
         try {
-          const state = JSON.parse(readFileSync(statePath, 'utf8')) as FreeModeState
-          bearerToken = state.apiKey ?? ''
-          wireApi = state.wireApi === 'chat' ? 'chat' : 'responses'
-          baseUrl = state.customBaseUrl ?? ''
+          const state = ensureDefaultFreeModeStateForMissingAuthSync(statePath)
+          bearerToken = state?.apiKey ?? ''
+          wireApi = state?.wireApi === 'chat' ? 'chat' : 'responses'
+          baseUrl = state?.customBaseUrl ?? ''
         } catch { /* use empty */ }
         handleCustomEndpointProxyRequest(req, res, { baseUrl, bearerToken, wireApi })
         return
