@@ -5606,3 +5606,32 @@ Provider-backed model lists reject stale configured and resumed models.
 #### Rollback/Cleanup
 - Stop the temporary container and remove its isolated `CODEX_HOME`.
 - Remove temporary API key files.
+
+---
+
+### Single OpenRouter fallback key
+
+#### Feature/Change Name
+OpenRouter provider fallback uses one verified bundled key when no key is configured.
+
+#### Prerequisites/Setup
+1. Start the app with `pnpm run dev --host 127.0.0.1 --port 4173`.
+2. Use an isolated `CODEX_HOME` or remove only `webui-custom-providers.json` from a temporary test home.
+3. Keep the real user `auth.json` untouched.
+
+#### Steps
+1. In light theme, open Settings and switch Provider to OpenRouter without entering an API key.
+2. Call `GET /codex-api/free-mode/status`.
+3. Confirm the status shows `provider=openrouter`, `enabled=true`, and `currentModel=openrouter/free`.
+4. Send `hi openrouter fallback key`.
+5. Confirm the chat renders an assistant reply or a final upstream OpenRouter error, not a missing-key/config error.
+6. Repeat the Settings/provider visibility and send-result check in dark theme.
+
+#### Expected Results
+- The bundled fallback key count is `1`.
+- OpenRouter provider switch uses the fallback key when neither the request nor saved provider state provides an OpenRouter key.
+- The model remains OpenRouter-scoped and never carries `big-pickle`.
+- Light theme and dark theme render Settings, model dropdown, and chat error/reply states clearly.
+
+#### Rollback/Cleanup
+- Delete only the isolated test `webui-custom-providers.json` or remove the temporary `CODEX_HOME`.

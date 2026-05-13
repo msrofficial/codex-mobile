@@ -28,6 +28,7 @@ import {
   createDefaultOpenCodeZenFreeModeState,
   getFreeModeConfigArgs,
   getFreeModeEnvVars,
+  resolveOpenRouterApiKeyForProviderSwitch,
   resolveOpenRouterModelForProviderSwitch,
   shouldCreateDefaultFreeModeStateForMissingAuth,
   shouldSuppressCommunityFreeModeForCodexAuth,
@@ -6131,7 +6132,9 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
             if (current.provider && current.apiKey) {
               prevKeys[current.provider] = current.apiKey
             }
-            const resolvedKey = apiKey || prevKeys[providerType] || ''
+            const resolvedKey = providerType === 'openrouter'
+              ? resolveOpenRouterApiKeyForProviderSwitch(apiKey, prevKeys[providerType])
+              : apiKey || prevKeys[providerType] || ''
             if (resolvedKey) {
               prevKeys[providerType] = resolvedKey
             }

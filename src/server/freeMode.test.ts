@@ -3,7 +3,9 @@ import {
   FREE_MODE_DEFAULT_MODEL,
   OPENCODE_ZEN_DEFAULT_MODEL,
   createDefaultOpenCodeZenFreeModeState,
+  getFreeKeyCount,
   getFreeModeConfigArgs,
+  resolveOpenRouterApiKeyForProviderSwitch,
   resolveOpenRouterModelForProviderSwitch,
   shouldCreateDefaultFreeModeStateForMissingAuth,
   shouldSuppressCommunityFreeModeForCodexAuth,
@@ -100,6 +102,13 @@ describe('unauthenticated free mode defaults', () => {
     expect(args).toContain('model_provider="openrouter_free"')
     expect(args).toContain(`model="${FREE_MODE_DEFAULT_MODEL}"`)
     expect(args).toContain('model_providers.openrouter_free.base_url="http://127.0.0.1:4173/codex-api/openrouter-proxy/v1"')
+  })
+
+  it('uses one bundled OpenRouter fallback key when no OpenRouter key is configured', () => {
+    expect(getFreeKeyCount()).toBe(1)
+    expect(resolveOpenRouterApiKeyForProviderSwitch('', undefined)).toMatch(/^sk-or-v1-/)
+    expect(resolveOpenRouterApiKeyForProviderSwitch('explicit-key', undefined)).toBe('explicit-key')
+    expect(resolveOpenRouterApiKeyForProviderSwitch('', 'saved-key')).toBe('saved-key')
   })
 
   it('resets stale non-OpenRouter models when switching to OpenRouter', () => {
