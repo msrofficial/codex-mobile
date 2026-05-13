@@ -3946,9 +3946,6 @@ async function onProviderChange(provider: string): Promise<void> {
     }
     providerError.value = ''
     await refreshAll({ includeSelectedThreadMessages: false, providerChanged: true, awaitAncillaryRefreshes: true })
-    if (route.name === 'thread') {
-      void router.push({ name: 'home' })
-    }
   } catch (err) {
     providerError.value = err instanceof Error ? err.message : 'Failed to switch provider'
   } finally {
