@@ -514,6 +514,44 @@ describe('live error overlay', () => {
     expect(state.error.value).toBe('')
   })
 
+  it('creates fresh thread when resume succeeds but model is incompatible with current provider', async () => {
+    installTestWindow()
+    gatewayMocks.resumeThread.mockResolvedValueOnce({
+      model: 'big-pickle',
+      messages: [],
+      inProgress: false,
+      activeTurnId: '',
+      hasMoreOlder: false,
+      turnIndexByTurnId: {},
+    })
+    gatewayMocks.startThread.mockResolvedValueOnce({
+      threadId: 'fresh-thread',
+      cwd: '/workspace',
+      model: 'gpt-5.5',
+    })
+    gatewayMocks.startThreadTurn.mockResolvedValueOnce('gpt-turn')
+
+    const state = useDesktopState()
+    state.availableModelIds.value = ['gpt-5.5', 'gpt-5.4-mini', 'o4-mini']
+    state.primeSelectedThread('zen-thread')
+
+    await state.sendMessageToSelectedThread('hi from gpt')
+
+    expect(gatewayMocks.resumeThread).toHaveBeenCalledWith('zen-thread')
+    expect(gatewayMocks.startThread).toHaveBeenCalled()
+    expect(gatewayMocks.startThreadTurn).toHaveBeenCalledWith(
+      'fresh-thread',
+      'hi from gpt',
+      [],
+      'gpt-5.5',
+      expect.any(String),
+      undefined,
+      [],
+      expect.any(String),
+    )
+    expect(state.error.value).toBe('')
+  })
+
   it('keeps a new live error visible when an older persisted turn error exists', async () => {
     installTestWindow()
     let notificationHandler: (notification: { method: string; params?: unknown }) => void = () => {}

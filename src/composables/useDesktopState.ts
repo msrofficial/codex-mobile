@@ -103,6 +103,16 @@ function isMissingHistoricalProviderError(error: unknown): boolean {
   return message.includes('Model provider') && message.includes('not found')
 }
 
+function isCrossProviderFormatError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return (
+    message.includes('invalid_request_error') &&
+    (message.includes('array_above_max_length') || message.includes('content'))
+  ) || (
+    message.includes('Invalid') && message.includes('input[') && message.includes('.content')
+  )
+}
+
 function loadReadStateMap(): Record<string, string> {
   if (typeof window === 'undefined') return {}
 
@@ -1433,6 +1443,7 @@ export function useDesktopState() {
   const hasMoreOlderMessagesByThreadId = ref<Record<string, boolean>>({})
   const loadingOlderMessagesByThreadId = ref<Record<string, boolean>>({})
   const resumedThreadById = ref<Record<string, boolean>>({})
+  const crossProviderThreadById = ref<Record<string, boolean>>({})
   const turnIndexByTurnIdByThreadId = ref<Record<string, Record<string, number>>>({})
   const turnSummaryByThreadId = ref<Record<string, TurnSummaryState>>({})
   const turnActivityByThreadId = ref<Record<string, TurnActivityState>>({})
@@ -4325,6 +4336,10 @@ export function useDesktopState() {
           ...resumedThreadById.value,
           [threadId]: true,
         }
+        const resumedModel = (resumedThread.model ?? '').trim()
+        if (resumedModel && availableModelIds.value.length > 0 && !availableModelIds.value.includes(resumedModel)) {
+          crossProviderThreadById.value = { ...crossProviderThreadById.value, [threadId]: true }
+        }
       }
 
       const { messages: nextMessages, inProgress, activeTurnId, turnIndexByTurnId } = detail
@@ -4499,6 +4514,7 @@ export function useDesktopState() {
     if (options.providerChanged) {
       resumedThreadById.value = {}
       loadedMessagesByThreadId.value = {}
+      crossProviderThreadById.value = {}
     }
 
     try {
@@ -4953,30 +4969,36 @@ export function useDesktopState() {
 
     let activeThreadId = threadId
     try {
-      let resumeFailedWithMissingProvider = false
-      if (resumedThreadById.value[activeThreadId] !== true) {
+      let needsFreshThread = crossProviderThreadById.value[activeThreadId] === true
+      if (!needsFreshThread && resumedThreadById.value[activeThreadId] !== true) {
         try {
           const resumedThread = await resumeThread(activeThreadId)
           setThreadModelId(activeThreadId, resumedThread.model)
+          const resumedModel = (resumedThread.model ?? '').trim()
+          if (resumedModel && availableModelIds.value.length > 0 && !availableModelIds.value.includes(resumedModel)) {
+            needsFreshThread = true
+          }
         } catch (unknownError) {
           if (!isMissingHistoricalProviderError(unknownError)) {
             throw unknownError
           }
-          resumeFailedWithMissingProvider = true
+          needsFreshThread = true
         }
       }
 
-      if (resumeFailedWithMissingProvider) {
+      if (needsFreshThread) {
         const sourceThread = flattenThreads(sourceGroups.value).find((row) => row.id === activeThreadId)
         const sourceCwd = sourceThread?.cwd?.trim() ?? ''
-        const modelId = readModelIdForThread(activeThreadId)
-        const freshThread = await startThread(sourceCwd || undefined, modelId || undefined)
+        const freshThread = await startThread(sourceCwd || undefined)
         const freshId = freshThread.threadId.trim()
         if (freshId) {
           insertOptimisticThread(freshId, sourceCwd, sourceThread?.title ?? '')
           setThreadModelId(freshId, freshThread.model)
           resumedThreadById.value = { ...resumedThreadById.value, [freshId]: true }
           setSelectedThreadId(freshId)
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.hash = `/thread/${freshId}`
+          }
           activeThreadId = freshId
         }
       }
@@ -5017,6 +5039,30 @@ export function useDesktopState() {
             fileAttachments,
             collaborationMode,
           )
+        } else if (isCrossProviderFormatError(unknownError) && activeThreadId === threadId) {
+          const sourceThread = flattenThreads(sourceGroups.value).find((row) => row.id === activeThreadId)
+          const sourceCwd = sourceThread?.cwd?.trim() ?? ''
+          const freshThread = await startThread(sourceCwd || undefined)
+          const freshId = freshThread.threadId.trim()
+          if (freshId) {
+            insertOptimisticThread(freshId, sourceCwd, sourceThread?.title ?? '')
+            setThreadModelId(freshId, freshThread.model)
+            resumedThreadById.value = { ...resumedThreadById.value, [freshId]: true }
+            setSelectedThreadId(freshId)
+            activeThreadId = freshId
+            startedTurnId = await startThreadTurn(
+              activeThreadId,
+              nextText,
+              normalizedImageUrls,
+              undefined,
+              reasoningEffort || undefined,
+              skills.length > 0 ? skills : undefined,
+              fileAttachments,
+              collaborationMode,
+            )
+          } else {
+            throw unknownError
+          }
         } else {
           throw unknownError
         }
