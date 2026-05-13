@@ -10,69 +10,9 @@ Passed and removed on 2026-05-13: OpenRouter selected state no longer falls back
 
 Passed and removed on 2026-05-13: custom NVIDIA NIM provider now drives the dropdown and sends without the empty-messages failure. Fresh packaged Docker evidence on `http://127.0.0.1:4492/#/` showed `currentModel=01-ai/yi-large`, 123 exclusive NIM models, no `big-pickle`, screenshot `output/playwright/docker-fix2-nim-dropdown.png`, and a final upstream NIM 404 rendered in chat without `messages field cannot be empty` in `output/playwright/docker-fix2-nim-send.png`.
 
-### [ ] P0 - Fresh no-auth Docker fallback still defaults to OpenCode Zen
+Passed and removed on 2026-05-13: fresh no-auth Docker fallback still defaults to OpenCode Zen. Fresh evidence on `http://127.0.0.1:4591/#/` showed `provider=opencode-zen`, `enabled=true`, `hasCodexAuth=false`, `big-pickle` in the dropdown, and a reply to `hi no auth fallback` in `output/playwright/what-noauth-send.png`.
 
-**Environment**
-
-- Packaged Docker image built from the current branch.
-- Empty isolated `CODEX_HOME`.
-- Unique localhost port, for example `http://127.0.0.1:4591/#/`.
-
-**Repro**
-
-1. Start a no-auth container with no `/codex-home/auth.json`.
-2. Open the app in Browser.
-3. Open Settings and verify the selected provider.
-4. Open the composer model dropdown.
-5. Send `hi no auth fallback`.
-
-**Pass criteria**
-
-- Settings shows `OpenCode Zen`.
-- Accounts shows no Codex auth.
-- `/codex-api/free-mode/status` reports `provider=opencode-zen`, `enabled=true`, and `hasCodexAuth=false`.
-- `/codex-api/provider-models` returns `exclusive=true` and includes `big-pickle`.
-- Dropdown includes `big-pickle` and does not show Codex-only models as the authoritative list.
-- Send produces an assistant reply or a final visible provider error in chat.
-
-**Validation evidence to capture**
-
-- Screenshot of Settings provider/account state.
-- Screenshot of model dropdown.
-- Screenshot of final chat reply/error.
-- Network evidence for `free-mode/status`, `provider-models`, and send.
-
-### [ ] P0 - Fresh auth Docker startup still defaults to Codex-only models
-
-**Environment**
-
-- Packaged Docker image built from the current branch.
-- Isolated `CODEX_HOME` with host `auth.json` mounted/copied.
-- Unique localhost port, for example `http://127.0.0.1:4592/#/`.
-
-**Repro**
-
-1. Start an auth-mounted container with fresh state.
-2. Open the app in Browser.
-3. Open Settings and verify provider/account state.
-4. Open the composer model dropdown.
-5. Send `hi auth codex`.
-
-**Pass criteria**
-
-- Settings shows `Codex`.
-- Accounts badge/count is at least `1`.
-- `/codex-api/free-mode/status` reports `hasCodexAuth=true`.
-- Dropdown shows Codex models only.
-- Dropdown does not include `big-pickle`, Groq models, NIM models, or OpenRouter-only entries.
-- Send uses the selected Codex model and returns an assistant reply or final auth/quota error in chat.
-
-**Validation evidence to capture**
-
-- Screenshot of Settings provider/account state.
-- Screenshot of model dropdown.
-- Screenshot of final chat reply/error in the same thread.
-- Network evidence for `free-mode/status`, `provider-models`, and `turn/start`.
+Passed and removed on 2026-05-13: fresh auth Docker startup still defaults to Codex-only models. Fresh evidence on `http://127.0.0.1:4592/#/` showed `hasCodexAuth=true`, Codex dropdown with `GPT-5.5`, no `big-pickle` or `openrouter/free`, and a reply to `hi auth codex` in `output/playwright/what-auth-send.png`.
 
 ### [ ] P0 - Provider switch chain keeps URL stable and provider models scoped
 
@@ -80,6 +20,23 @@ Passed and removed on 2026-05-13: custom NVIDIA NIM provider now drives the drop
 
 - Auth-mounted packaged Docker container on a fresh unique port.
 - OpenRouter and NVIDIA NIM keys available.
+
+**Current evidence**
+
+- Fresh run: packaged image `codexapp-what-test:local`, auth-mounted container on `http://127.0.0.1:4592/#/`.
+- OpenCode Zen step passed:
+  - `/codex-api/free-mode/status` returned `provider=opencode-zen`, `currentModel=big-pickle`.
+  - `/codex-api/provider-models` returned `exclusive=true`, `count=41`, including `big-pickle`.
+  - Browser screenshots:
+    - `output/playwright/what-chain-zen-dropdown.png`
+    - `output/playwright/what-chain-zen-send.png`
+- OpenRouter step failed:
+  - After `OpenCode Zen -> OpenRouter`, `/codex-api/free-mode/status` returned `provider=openrouter`, `enabled=true`, but `currentModel=big-pickle`.
+  - `/codex-api/provider-models` returned `exclusive=true`, `count=26`, and did not include `big-pickle`.
+  - Browser did not show `openrouter/free`; the send attempt did not submit `hi provider openrouter` and the thread rendered `RPC turn/start failed with HTTP 502: thread not found: 019e212d-35ee-73f2-8724-75d3a006f445`.
+  - Browser screenshots:
+    - `output/playwright/what-chain-openrouter-dropdown.png`
+    - `output/playwright/what-chain-openrouter-send.png`
 
 **Repro**
 
@@ -118,6 +75,17 @@ Passed and removed on 2026-05-13: custom NVIDIA NIM provider now drives the drop
 - Auth-mounted packaged Docker container.
 - Valid OpenRouter key configured.
 
+**Current evidence**
+
+- Fresh run: packaged image `codexapp-what-test:local`, auth-mounted container on `http://127.0.0.1:4592/#/`.
+- After configuring OpenRouter from an OpenCode Zen state:
+  - `/codex-api/free-mode/status` returned `provider=openrouter`, `enabled=true`, `currentModel=big-pickle`.
+  - `/codex-api/provider-models` returned `exclusive=true`, `count=26`, did not include `big-pickle`, and started with `openrouter/free`.
+- The browser did not show `openrouter/free` as the composer model in the tested state.
+- Browser screenshots:
+  - `output/playwright/what-chain-openrouter-dropdown.png`
+  - `output/playwright/what-chain-openrouter-send.png`
+
 **Repro**
 
 1. Configure OpenRouter through Settings or the equivalent app endpoint.
@@ -152,6 +120,15 @@ Passed and removed on 2026-05-13: custom NVIDIA NIM provider now drives the drop
 - Fresh packaged Docker evidence on `http://127.0.0.1:4492/#/` showed dropdown scoping was fixed.
 - Sending with default `01-ai/yi-large` reached the upstream and rendered a final upstream 404 for a missing NIM function.
 - There was no `messages field cannot be empty` error.
+- Fresh run on `http://127.0.0.1:4592/#/` after OpenRouter showed a regression:
+  - `/codex-api/free-mode/status` returned `provider=custom`, `currentModel=01-ai/yi-large`, `wireApi=chat`.
+  - `/codex-api/provider-models` returned `source=custom`, `exclusive=true`, `count=123`, first model `01-ai/yi-large`, and no `big-pickle`.
+  - Browser composer still showed stale `big-pickle` and the dropdown did not show `01-ai/yi-large`.
+  - Send rendered `unexpected status 404 Not Found: 404 page not found, url: http://127.0.0.1:4190/codex-api/custom-proxy/v1/responses`.
+  - There was still no `messages field cannot be empty` error.
+  - Browser screenshots:
+    - `output/playwright/what-nim-dropdown.png`
+    - `output/playwright/what-nim-send.png`
 
 **Repro**
 
