@@ -336,6 +336,36 @@ Rollback/cleanup:
 
 ---
 
+### Plugin catalog shows concrete example chips
+
+#### Feature/Change Name
+Plugin catalog popular examples.
+
+#### Prerequisites/Setup
+1. Dev server running (`pnpm run dev --host 127.0.0.1 --port 4173`).
+2. Plugin catalog APIs available from the current Codex CLI.
+3. Light theme and dark theme both available from the appearance switcher.
+
+#### Steps
+1. In light theme, open `/#/skills?tab=plugins`.
+2. Confirm plugin cards are sorted by `Popular` by default.
+3. Confirm each visible plugin card shows five concrete example chips, such as browser, GitHub, email, calendar, file, deploy, or fallback action examples, instead of only generic category/capability chips.
+4. Open an installed plugin detail and confirm the same five example chips are shown in the `Examples` section.
+5. Open a plugin that is not installed or is unavailable for install and confirm its example chips remain visible in the card and detail view.
+6. Search by text from an example chip and confirm matching plugins remain discoverable.
+7. Switch to dark theme and repeat steps 1-6.
+
+#### Expected Results
+- Plugin examples are visible before installation and are not gated by installed/enabled state.
+- Popular plugin families show practical examples tailored to their domain.
+- Plugins without recognized domains still show five fallback examples derived from default prompts, capabilities, or safe generic actions.
+- Example chips remain readable in light theme and dark theme.
+
+#### Rollback/Cleanup
+- None.
+
+---
+
 ### Qodo feedback diagnostics reliability fixes
 
 #### Feature/Change Name

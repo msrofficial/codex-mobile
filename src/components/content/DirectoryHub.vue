@@ -101,9 +101,8 @@
             </div>
           </div>
           <p v-if="plugin.description" class="directory-card-description">{{ plugin.description }}</p>
-          <div class="directory-chip-row">
-            <span v-if="plugin.category" class="directory-chip">{{ plugin.category }}</span>
-            <span v-for="capability in plugin.capabilities.slice(0, 2)" :key="capability" class="directory-chip">{{ capability }}</span>
+          <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
+            <span v-for="example in pluginExampleChips(plugin)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
           </div>
         </button>
       </div>
@@ -449,6 +448,13 @@
             <template v-else-if="selectedPluginDetail">
               <p v-if="selectedPluginDescription" class="directory-detail-description">{{ selectedPluginDescription }}</p>
 
+              <div v-if="selectedPlugin" class="directory-detail-block">
+                <h4 class="directory-detail-heading">Examples</h4>
+                <div class="directory-chip-row directory-example-chip-row">
+                  <span v-for="example in pluginExampleChips(selectedPlugin)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
+                </div>
+              </div>
+
               <div v-if="selectedPluginDetail.summary.capabilities.length > 0" class="directory-detail-block">
                 <h4 class="directory-detail-heading">Capabilities</h4>
                 <div class="directory-chip-row">
@@ -733,8 +739,62 @@ const POPULAR_APP_KEYWORD_BONUSES: Array<[RegExp, number]> = [
   [/(task|project|issue|repository|deploy|database|crm|sales|support)/i, 120],
 ]
 const POPULAR_PLUGIN_NAME_BONUSES: Array<[RegExp, number]> = [
-  [/(computer use|github|gitlab|linear|slack|notion|browser|web|filesystem|terminal)/i, 120],
-  [/(calendar|email|drive|docs|design|deploy|project|issue|search|database)/i, 55],
+  [/(browser|chrome|computer use|github|gitlab|linear|slack|notion|gmail|email|calendar|drive|figma|canva|cloudflare|terminal|filesystem)/i, 180],
+  [/(web|docs|design|deploy|project|issue|search|database|outlook|teams|sharepoint|jira|vercel|netlify)/i, 75],
+]
+const PLUGIN_EXAMPLE_RULES: Array<{ pattern: RegExp; examples: string[] }> = [
+  {
+    pattern: /(browser|web)/i,
+    examples: ['Open a local URL', 'Click through a flow', 'Capture a screenshot', 'Inspect visible text', 'Verify mobile layout'],
+  },
+  {
+    pattern: /(chrome)/i,
+    examples: ['Use my Chrome session', 'Inspect current tab', 'Test logged-in page', 'Capture page state', 'Check extension UI'],
+  },
+  {
+    pattern: /(computer use|desktop)/i,
+    examples: ['Control a desktop app', 'Read window state', 'Click a toolbar', 'Fill a form', 'Verify a dialog'],
+  },
+  {
+    pattern: /(github|gitlab|repository|pull request|issue)/i,
+    examples: ['Review a pull request', 'Triage open issues', 'Check CI failures', 'Summarize commits', 'Draft a PR comment'],
+  },
+  {
+    pattern: /(linear|jira|asana|trello|clickup|project|task)/i,
+    examples: ['Find assigned issues', 'Summarize blockers', 'Create a task', 'Update issue status', 'Plan next sprint'],
+  },
+  {
+    pattern: /(slack|teams|chat|message)/i,
+    examples: ['Summarize a channel', 'Find mentions', 'Draft a reply', 'Search a thread', 'Post an update'],
+  },
+  {
+    pattern: /(notion|docs|document|wiki|page)/i,
+    examples: ['Find a page', 'Summarize docs', 'Create meeting notes', 'Update a wiki page', 'Extract action items'],
+  },
+  {
+    pattern: /(gmail|email|outlook|mail|inbox)/i,
+    examples: ['Summarize unread mail', 'Find an email', 'Draft a reply', 'Check attachments', 'Archive newsletters'],
+  },
+  {
+    pattern: /(calendar|event|availability|meeting)/i,
+    examples: ['Find free time', 'Summarize today', 'Create a meeting', 'Move an event', 'Check attendee status'],
+  },
+  {
+    pattern: /(drive|dropbox|box|sharepoint|file|storage)/i,
+    examples: ['Find a file', 'Read a document', 'Summarize a folder', 'Check recent edits', 'Share a file'],
+  },
+  {
+    pattern: /(figma|canva|design|image|slide|presentation)/i,
+    examples: ['Inspect a design', 'Create a mockup', 'Export assets', 'Compare variants', 'Draft presentation copy'],
+  },
+  {
+    pattern: /(cloudflare|vercel|netlify|deploy|worker|hosting)/i,
+    examples: ['Check deploy status', 'List recent builds', 'Inspect DNS records', 'Review logs', 'Publish an update'],
+  },
+  {
+    pattern: /(terminal|shell|filesystem|file system|database|postgres|sqlite)/i,
+    examples: ['Run a safe command', 'Search project files', 'Inspect database rows', 'Check disk usage', 'Summarize logs'],
+  },
 ]
 const POPULAR_MCP_NAME_BONUSES: Array<[RegExp, number]> = [
   [/(github|gitlab|linear|slack|notion|filesystem|browser|computer|web|postgres|sqlite|database)/i, 120],
@@ -877,6 +937,10 @@ const toast = ref<{ text: string; type: 'success' | 'error' } | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 let composioSearchTimer: ReturnType<typeof setTimeout> | null = null
 let isComposioLoadQueued = false
+let pluginsLoadPromise: Promise<void> | null = null
+let appsLoadPromise: Promise<void> | null = null
+let pluginsLoadedKey = ''
+let appsLoadedKey = ''
 
 const activeCopy = computed(() => tabs.find((tab) => tab.id === activeTab.value) ?? tabs[0])
 const supportsPlugins = computed(() =>
@@ -1002,6 +1066,56 @@ function includesSearch(parts: Array<string | null | undefined>, query: string):
   return parts.some((part) => part?.toLowerCase().includes(normalized))
 }
 
+function addExampleChip(chips: string[], seen: Set<string>, value: string): void {
+  const chip = value.trim()
+  if (!chip) return
+  const key = chip.toLowerCase()
+  if (seen.has(key)) return
+  seen.add(key)
+  chips.push(chip)
+}
+
+function pluginExampleSource(plugin: DirectoryPluginSummary): string {
+  return [
+    plugin.displayName,
+    plugin.name,
+    plugin.description,
+    plugin.longDescription,
+    plugin.category,
+    plugin.developerName,
+    plugin.capabilities.join(' '),
+  ].join(' ')
+}
+
+function pluginExampleChips(plugin: DirectoryPluginSummary): string[] {
+  const chips: string[] = []
+  const seen = new Set<string>()
+  const source = pluginExampleSource(plugin)
+
+  for (const rule of PLUGIN_EXAMPLE_RULES) {
+    if (!rule.pattern.test(source)) continue
+    for (const example of rule.examples) addExampleChip(chips, seen, example)
+    if (chips.length >= 5) return chips.slice(0, 5)
+  }
+
+  for (const prompt of plugin.defaultPrompt) {
+    addExampleChip(chips, seen, prompt.replace(/[.!?]\s*$/u, ''))
+    if (chips.length >= 5) return chips.slice(0, 5)
+  }
+
+  for (const capability of plugin.capabilities) {
+    addExampleChip(chips, seen, `Try ${capability}`)
+    if (chips.length >= 5) return chips.slice(0, 5)
+  }
+
+  addExampleChip(chips, seen, `Explore ${plugin.displayName}`)
+  addExampleChip(chips, seen, 'Show available actions')
+  addExampleChip(chips, seen, 'Run a safe check')
+  addExampleChip(chips, seen, 'Summarize current state')
+  addExampleChip(chips, seen, 'Suggest next steps')
+  return chips.slice(0, 5)
+}
+
 function bonusForName(name: string, rows: Array<[RegExp, number]>): number {
   return rows.reduce((score, [pattern, bonus]) => score + (pattern.test(name) ? bonus : 0), 0)
 }
@@ -1084,6 +1198,8 @@ function filterPlugins(rows: DirectoryPluginSummary[], query: string): Directory
     plugin.category,
     plugin.marketplaceDisplayName,
     ...plugin.capabilities,
+    ...plugin.defaultPrompt,
+    ...pluginExampleChips(plugin),
   ], query))
 }
 
@@ -1301,35 +1417,50 @@ async function loadMethods(): Promise<void> {
   }
 }
 
-async function loadPlugins(): Promise<void> {
+async function loadPlugins(force = false): Promise<void> {
   if (!supportsPlugins.value) return
-  isLoadingPlugins.value = true
-  pluginError.value = ''
-  try {
-    const cwd = props.cwd?.trim()
-    const [nextPlugins] = await Promise.all([
-      listDirectoryPlugins(cwd ? [cwd] : undefined),
-      supportsApps.value ? loadApps() : Promise.resolve(),
-    ])
-    plugins.value = nextPlugins
-  } catch (error) {
-    pluginError.value = error instanceof Error ? error.message : 'Failed to load plugins'
-  } finally {
-    isLoadingPlugins.value = false
-  }
+  const key = props.cwd?.trim() || ''
+  if (!force && pluginsLoadedKey === key && plugins.value.length > 0 && !pluginError.value) return
+  if (pluginsLoadPromise) return pluginsLoadPromise
+  pluginsLoadPromise = (async () => {
+    isLoadingPlugins.value = true
+    pluginError.value = ''
+    try {
+      const [nextPlugins] = await Promise.all([
+        listDirectoryPlugins(key ? [key] : undefined),
+        supportsApps.value ? loadApps(force) : Promise.resolve(),
+      ])
+      plugins.value = nextPlugins
+      pluginsLoadedKey = key
+    } catch (error) {
+      pluginError.value = error instanceof Error ? error.message : 'Failed to load plugins'
+    } finally {
+      isLoadingPlugins.value = false
+      pluginsLoadPromise = null
+    }
+  })()
+  return pluginsLoadPromise
 }
 
-async function loadApps(): Promise<void> {
+async function loadApps(force = false): Promise<void> {
   if (!supportsApps.value) return
-  isLoadingApps.value = true
-  appError.value = ''
-  try {
-    apps.value = await listDirectoryApps(props.threadId?.trim() || undefined)
-  } catch (error) {
-    appError.value = error instanceof Error ? error.message : 'Failed to load apps'
-  } finally {
-    isLoadingApps.value = false
-  }
+  const key = props.threadId?.trim() || ''
+  if (!force && appsLoadedKey === key && apps.value.length > 0 && !appError.value) return
+  if (appsLoadPromise) return appsLoadPromise
+  appsLoadPromise = (async () => {
+    isLoadingApps.value = true
+    appError.value = ''
+    try {
+      apps.value = await listDirectoryApps(key || undefined)
+      appsLoadedKey = key
+    } catch (error) {
+      appError.value = error instanceof Error ? error.message : 'Failed to load apps'
+    } finally {
+      isLoadingApps.value = false
+      appsLoadPromise = null
+    }
+  })()
+  return appsLoadPromise
 }
 
 async function loadComposio(append = false): Promise<void> {
@@ -1396,8 +1527,8 @@ async function refreshMcpStatusesForPluginDetail(): Promise<void> {
 }
 
 function refreshActiveTab(forceReload = false): void {
-  if (activeTab.value === 'plugins') void loadPlugins()
-  if (activeTab.value === 'apps') void loadApps()
+  if (activeTab.value === 'plugins') void loadPlugins(forceReload)
+  if (activeTab.value === 'apps') void loadApps(forceReload)
   if (activeTab.value === 'composio') void loadComposio()
   if (activeTab.value === 'skills') {
     if (forceReload && supportsMcpReload.value) void reloadMcps()
@@ -1408,8 +1539,8 @@ function refreshActiveTab(forceReload = false): void {
 async function manualRefreshActiveTab(): Promise<void> {
   isManualRefreshInFlight.value = true
   try {
-    if (activeTab.value === 'plugins') await loadPlugins()
-    else if (activeTab.value === 'apps') await loadApps()
+    if (activeTab.value === 'plugins') await loadPlugins(true)
+    else if (activeTab.value === 'apps') await loadApps(true)
     else if (activeTab.value === 'composio') await loadComposio()
     else if (activeTab.value === 'skills' && supportsMcpReload.value) await reloadMcps()
     else if (activeTab.value === 'skills') await loadMcps()
@@ -1561,7 +1692,7 @@ async function installSelectedPlugin(): Promise<void> {
     installAuthApps.value = result.appsNeedingAuth
     showToast(`${selectedPlugin.value.displayName} plugin installed`)
     const openedAppLogin = openFirstAppLoginIfNeeded(result.appsNeedingAuth)
-    await loadPlugins()
+    await loadPlugins(true)
     const updated = plugins.value.find((plugin) => plugin.id === selectedPlugin.value?.id)
     if (updated) {
       await openPluginDetail(updated)
@@ -1584,7 +1715,7 @@ async function uninstallSelectedPlugin(): Promise<void> {
     await uninstallDirectoryPlugin(selectedPlugin.value.id)
     showToast(`${name} plugin uninstalled`)
     closePluginDetail()
-    await loadPlugins()
+    await loadPlugins(true)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Failed to uninstall plugin', 'error')
   } finally {
@@ -1606,7 +1737,7 @@ async function toggleSelectedPlugin(): Promise<void> {
       }
     }
     showToast(`${selectedPlugin.value.displayName} plugin ${next ? 'enabled' : 'disabled'}`)
-    await loadPlugins()
+    await loadPlugins(true)
   } catch (error) {
     showToast(error instanceof Error ? error.message : 'Failed to update plugin', 'error')
   } finally {
@@ -1672,7 +1803,7 @@ watch(composioSearchQuery, () => {
   }, 250)
 })
 watch(() => props.cwd, () => {
-  if (activeTab.value === 'plugins') void loadPlugins()
+  if (activeTab.value === 'plugins') void loadPlugins(true)
 })
 watch(() => props.threadId, () => {
   if (activeTab.value === 'apps' || activeTab.value === 'plugins') void loadApps()
@@ -1917,6 +2048,14 @@ button.directory-card {
 
 .directory-chip {
   @apply rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500;
+}
+
+.directory-example-chip-row {
+  @apply mt-auto;
+}
+
+.directory-example-chip {
+  @apply border-blue-100 bg-blue-50 text-blue-700;
 }
 
 .directory-card-actions {
@@ -2203,6 +2342,10 @@ button.directory-card {
 :global(:root.dark) .directory-auth-panel,
 :global(:root.dark) .directory-chip {
   @apply border-zinc-700 bg-zinc-800 text-zinc-100;
+}
+
+:global(:root.dark) .directory-example-chip {
+  @apply border-blue-900/60 bg-blue-950/40 text-blue-200;
 }
 
 :global(:root.dark) .directory-sort-group {
