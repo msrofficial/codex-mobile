@@ -165,9 +165,8 @@
             </div>
           </div>
           <p v-if="app.description" class="directory-card-description">{{ app.description }}</p>
-          <div class="directory-chip-row">
-            <span v-if="app.category" class="directory-chip">{{ app.category }}</span>
-            <span v-for="name in app.pluginDisplayNames.slice(0, 2)" :key="name" class="directory-chip">{{ name }}</span>
+          <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
+            <span v-for="example in appExampleChips(app)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
           </div>
           <div class="directory-card-actions">
             <button class="directory-action" type="button" :disabled="appActionId === app.id" @click="toggleApp(app)">
@@ -323,10 +322,8 @@
               </div>
             </div>
             <p v-if="connector.description" class="directory-card-description">{{ connector.description }}</p>
-            <div class="directory-chip-row">
-              <span class="directory-chip">{{ connector.toolsCount }} tools</span>
-              <span v-if="connector.triggersCount > 0" class="directory-chip">{{ connector.triggersCount }} triggers</span>
-              <span v-if="connector.authModes.length > 0" class="directory-chip">{{ connector.authModes.join(', ') }}</span>
+            <div class="directory-chip-row directory-example-chip-row" aria-label="Example prompts">
+              <span v-for="example in composioExampleChips(connector)" :key="example" class="directory-chip directory-example-chip">{{ example }}</span>
             </div>
             <div class="directory-card-actions">
               <button class="directory-action" type="button" @click="openComposioDetail(connector.slug)">
@@ -788,6 +785,46 @@ const POPULAR_PLUGIN_NAME_BONUSES: Array<[RegExp, number]> = [
 ]
 const PLUGIN_EXAMPLE_RULES: Array<{ pattern: RegExp; examples: string[] }> = [
   {
+    pattern: /(gmail|email|outlook|mail|inbox)/i,
+    examples: ['Triage inbox chaos', 'Extract hidden todos', 'Draft the hard reply', 'Find attachments fast', 'Clean newsletter pile'],
+  },
+  {
+    pattern: /(calendar|event|availability|meeting)/i,
+    examples: ['Rescue my week', 'Find focus blocks', 'Prep meeting brief', 'Move conflicts cleanly', 'Audit time leaks'],
+  },
+  {
+    pattern: /(google drive|drive|dropbox|box|sharepoint|file|storage)/i,
+    examples: ['Find the source doc', 'Brief from scattered files', 'Compare recent edits', 'Summarize a folder', 'Pull proof for a claim'],
+  },
+  {
+    pattern: /(google docs|docs|document)/i,
+    examples: ['Turn notes into a doc', 'Draft a first pass', 'Extract decisions', 'Rewrite for clarity', 'Make an exec brief'],
+  },
+  {
+    pattern: /(google sheets|sheets|spreadsheet|excel)/i,
+    examples: ['Clean messy rows', 'Spot weird outliers', 'Make a quick pivot', 'Write formulas', 'Summarize the numbers'],
+  },
+  {
+    pattern: /(notion|wiki|page)/i,
+    examples: ['Update team wiki', 'Turn chaos into tasks', 'Find stale docs', 'Build a project brief', 'Extract action items'],
+  },
+  {
+    pattern: /(obsidian|vault|second brain|pkm|notes)/i,
+    examples: ['Search my vault', 'Connect related notes', 'Make a daily brief', 'Extract evergreen ideas', 'Turn notes into tasks'],
+  },
+  {
+    pattern: /(reddit|subreddit)/i,
+    examples: ['Find real user pain', 'Mine subreddit questions', 'Spot complaint patterns', 'Draft a helpful reply', 'Track niche trends'],
+  },
+  {
+    pattern: /(x|twitter)/i,
+    examples: ['Find trend angles', 'Draft a sharp thread', 'Monitor brand mentions', 'Turn post into replies', 'Compare hot takes'],
+  },
+  {
+    pattern: /(youtube|tiktok|instagram|facebook|linkedin|shorts|reels)/i,
+    examples: ['Pull hooks from comments', 'Repurpose into posts', 'Draft platform captions', 'Find creator angles', 'Plan content batch'],
+  },
+  {
     pattern: /(browser|web)/i,
     examples: ['Open a local URL', 'Click through a flow', 'Capture a screenshot', 'Inspect visible text', 'Verify mobile layout'],
   },
@@ -810,22 +847,6 @@ const PLUGIN_EXAMPLE_RULES: Array<{ pattern: RegExp; examples: string[] }> = [
   {
     pattern: /(slack|teams|chat|message)/i,
     examples: ['Summarize a channel', 'Find mentions', 'Draft a reply', 'Search a thread', 'Post an update'],
-  },
-  {
-    pattern: /(notion|docs|document|wiki|page)/i,
-    examples: ['Find a page', 'Summarize docs', 'Create meeting notes', 'Update a wiki page', 'Extract action items'],
-  },
-  {
-    pattern: /(gmail|email|outlook|mail|inbox)/i,
-    examples: ['Summarize unread mail', 'Find an email', 'Draft a reply', 'Check attachments', 'Archive newsletters'],
-  },
-  {
-    pattern: /(calendar|event|availability|meeting)/i,
-    examples: ['Find free time', 'Summarize today', 'Create a meeting', 'Move an event', 'Check attendee status'],
-  },
-  {
-    pattern: /(drive|dropbox|box|sharepoint|file|storage)/i,
-    examples: ['Find a file', 'Read a document', 'Summarize a folder', 'Check recent edits', 'Share a file'],
   },
   {
     pattern: /(figma|canva|design|image|slide|presentation)/i,
@@ -1131,10 +1152,9 @@ function pluginExampleSource(plugin: DirectoryPluginSummary): string {
   ].join(' ')
 }
 
-function pluginExampleChips(plugin: DirectoryPluginSummary): string[] {
+function exampleChipsFromSource(source: string, fallbackLabel: string, fallbackValues: string[] = []): string[] {
   const chips: string[] = []
   const seen = new Set<string>()
-  const source = pluginExampleSource(plugin)
 
   for (const rule of PLUGIN_EXAMPLE_RULES) {
     if (!rule.pattern.test(source)) continue
@@ -1142,22 +1162,49 @@ function pluginExampleChips(plugin: DirectoryPluginSummary): string[] {
     if (chips.length >= 5) return chips.slice(0, 5)
   }
 
-  for (const prompt of plugin.defaultPrompt) {
-    addExampleChip(chips, seen, prompt.replace(/[.!?]\s*$/u, ''))
+  for (const value of fallbackValues) {
+    addExampleChip(chips, seen, value.replace(/[.!?]\s*$/u, ''))
     if (chips.length >= 5) return chips.slice(0, 5)
   }
 
-  for (const capability of plugin.capabilities) {
-    addExampleChip(chips, seen, `Try ${capability}`)
-    if (chips.length >= 5) return chips.slice(0, 5)
-  }
-
-  addExampleChip(chips, seen, `Explore ${plugin.displayName}`)
+  addExampleChip(chips, seen, `Explore ${fallbackLabel}`)
   addExampleChip(chips, seen, 'Show available actions')
   addExampleChip(chips, seen, 'Run a safe check')
   addExampleChip(chips, seen, 'Summarize current state')
   addExampleChip(chips, seen, 'Suggest next steps')
   return chips.slice(0, 5)
+}
+
+function pluginExampleChips(plugin: DirectoryPluginSummary): string[] {
+  const chips = exampleChipsFromSource(pluginExampleSource(plugin), plugin.displayName, plugin.defaultPrompt)
+  if (chips.length >= 5) return chips
+  const seen = new Set(chips.map((chip) => chip.toLowerCase()))
+  for (const capability of plugin.capabilities) {
+    addExampleChip(chips, seen, `Try ${capability}`)
+    if (chips.length >= 5) return chips.slice(0, 5)
+  }
+  return chips.slice(0, 5)
+}
+
+function appExampleChips(app: DirectoryAppInfo): string[] {
+  return exampleChipsFromSource([
+    app.name,
+    app.description,
+    app.category,
+    app.developer,
+    app.distributionChannel,
+    app.pluginDisplayNames.join(' '),
+  ].join(' '), app.name)
+}
+
+function composioExampleChips(connector: DirectoryComposioConnector): string[] {
+  return exampleChipsFromSource([
+    connector.name,
+    connector.slug,
+    connector.description,
+    connector.authModes.join(' '),
+    connector.connectionStatuses.join(' '),
+  ].join(' '), connector.name)
 }
 
 function bonusForName(name: string, rows: Array<[RegExp, number]>): number {
@@ -1269,6 +1316,7 @@ function filterApps(rows: DirectoryAppInfo[], query: string): DirectoryAppInfo[]
     app.category,
     app.distributionChannel,
     ...app.pluginDisplayNames,
+    ...appExampleChips(app),
   ], query))
 }
 
@@ -1279,6 +1327,7 @@ function filterComposioConnectors(rows: DirectoryComposioConnector[], query: str
     connector.description,
     ...connector.authModes,
     ...connector.connectionStatuses,
+    ...composioExampleChips(connector),
   ], query))
 }
 
