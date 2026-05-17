@@ -55,6 +55,14 @@ describe('rankComposioSuggestions', () => {
     const rows = [connector({ slug: 'reddit', name: 'Reddit' })]
     expect(rankComposioSuggestions(rows, 'redditor')).toEqual([])
   })
+
+  it('matches standalone words inside multi-word connector names', () => {
+    const rows = [
+      connector({ slug: 'reddit', name: 'Reddit', toolsCount: 10 }),
+      connector({ slug: 'reddit_ads', name: 'Reddit Ads', toolsCount: 83 }),
+    ]
+    expect(rankComposioSuggestions(rows, 'reddit').map((row) => row.slug)).toEqual(['reddit', 'reddit_ads'])
+  })
 })
 
 describe('getComposioSuggestionQuery', () => {

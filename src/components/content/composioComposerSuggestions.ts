@@ -42,15 +42,36 @@ function aliasPattern(alias: string): RegExp {
   return new RegExp(`(^|[^a-z0-9])(${separatorAware})(?=$|[^a-z0-9])`, 'giu')
 }
 
-function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQuery: string): { index: number; length: number } | null {
-  let latest: { index: number; length: number } | null = null
+type ComposioMentionMatch = { index: number; length: number; isFullAlias: boolean }
+
+function connectorAliasTokens(connector: DirectoryComposioConnector): string[] {
+  return [...new Set(
+    connectorAliases(connector)
+      .flatMap((alias) => alias.split(/[\s_-]+/u))
+      .map((token) => token.trim().toLowerCase())
+      .filter((token) => token.length >= 2),
+  )]
+}
+
+function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQuery: string): ComposioMentionMatch | null {
+  let latest: ComposioMentionMatch | null = null
   for (const alias of connectorAliases(connector)) {
     const pattern = aliasPattern(alias)
     for (const match of fullQuery.matchAll(pattern)) {
       const matched = match[2] ?? ''
       const index = (match.index ?? 0) + ((match[1] ?? '').length)
       if (!latest || index > latest.index || (index === latest.index && matched.length > latest.length)) {
-        latest = { index, length: matched.length }
+        latest = { index, length: matched.length, isFullAlias: true }
+      }
+    }
+  }
+  for (const token of connectorAliasTokens(connector)) {
+    const pattern = aliasPattern(token)
+    for (const match of fullQuery.matchAll(pattern)) {
+      const matched = match[2] ?? ''
+      const index = (match.index ?? 0) + ((match[1] ?? '').length)
+      if (!latest || index > latest.index || (index === latest.index && latest.isFullAlias === false && matched.length > latest.length)) {
+        latest = { index, length: matched.length, isFullAlias: false }
       }
     }
   }
@@ -61,6 +82,7 @@ function scoreComposioSuggestion(connector: DirectoryComposioConnector, fullQuer
   const latestMatch = findLatestExactAliasMatch(connector, fullQuery)
   if (!latestMatch) return 0
   let score = latestMatch.index * 100_000 + latestMatch.length * 1_000
+  if (latestMatch.isFullAlias) score += 50_000
   if (connector.activeCount > 0) score += 500
   else if (connector.totalConnections > 0) score += 250
   else if (connector.isNoAuth) score += 100
