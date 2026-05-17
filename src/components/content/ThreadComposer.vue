@@ -494,6 +494,7 @@ const props = defineProps<{
   dictationClickToToggle?: boolean
   dictationAutoSend?: boolean
   dictationLanguage?: string
+  composioSuggestionsEnabled?: boolean
 }>()
 
 export type FileAttachment = { label: string; path: string; fsPath: string }
@@ -653,6 +654,7 @@ const isPlanModeWaitingForModel = computed(() =>
 
 const selectedSkillPaths = computed(() => selectedSkills.value.map((s) => s.path))
 const visibleComposioSuggestions = computed(() => {
+  if (props.composioSuggestionsEnabled === false) return []
   if (isFileMentionOpen.value) return []
   const query = getComposioSuggestionQuery(draft.value)
   if (query.length < 2) return []

@@ -241,6 +241,10 @@
                 <span class="sidebar-settings-label">{{ t('Chat width') }}</span>
                 <span class="sidebar-settings-value">{{ chatWidthLabel }}</span>
               </button>
+              <button class="sidebar-settings-row" type="button" :title="SETTINGS_HELP.composioSuggestions" @click="toggleComposioSuggestions">
+                <span class="sidebar-settings-label">{{ t('Connector suggestions') }}</span>
+                <span class="sidebar-settings-toggle" :class="{ 'is-on': composioSuggestionsEnabled }" />
+              </button>
               <button class="sidebar-settings-row" type="button" :title="SETTINGS_HELP.dictationClickToToggle" @click="toggleDictationClickToToggle">
                 <span class="sidebar-settings-label">{{ t('Click to toggle dictation') }}</span>
                 <span class="sidebar-settings-toggle" :class="{ 'is-on': dictationClickToToggle }" />
@@ -938,6 +942,7 @@
                   :is-interrupting-turn="false" :send-with-enter="sendWithEnter" :in-progress-submit-mode="inProgressSendMode"
                   :dictation-click-to-toggle="dictationClickToToggle" :dictation-auto-send="dictationAutoSend"
                   :dictation-language="dictationLanguage"
+                  :composio-suggestions-enabled="composioSuggestionsEnabled"
                   @submit="onSubmitThreadMessage"
                   @update:selected-collaboration-mode="onSelectCollaborationMode"
                   @update:selected-model="onSelectModel"
@@ -1024,6 +1029,7 @@
                     :send-with-enter="sendWithEnter" :in-progress-submit-mode="inProgressSendMode"
                     :dictation-click-to-toggle="dictationClickToToggle" :dictation-auto-send="dictationAutoSend"
                     :dictation-language="dictationLanguage"
+                    :composio-suggestions-enabled="composioSuggestionsEnabled"
                     @update:selected-collaboration-mode="onSelectCollaborationMode"
                     @submit="onSubmitThreadMessage" @update:selected-model="onSelectModel"
                     @update:selected-reasoning-effort="onSelectReasoningEffort"
@@ -1191,6 +1197,7 @@ const SETTINGS_HELP = {
   inProgressSendMode: t('If a turn is still running, choose whether a new prompt should steer the current turn or be queued.'),
   appearance: t('Switch between system theme, light mode, and dark mode.'),
   chatWidth: t('Choose how wide the conversation column and composer can grow on desktop screens.'),
+  composioSuggestions: t('Show connector suggestions in the composer while typing connector names.'),
   dictationClickToToggle: t('Use click-to-start and click-to-stop dictation instead of hold-to-talk.'),
   dictationAutoSend: t('Automatically send transcribed dictation when recording stops.'),
   dictationLanguage: t('Choose transcription language or keep auto-detect.'),
@@ -1542,6 +1549,7 @@ const DARK_MODE_KEY = 'codex-web-local.dark-mode.v1'
 const DICTATION_CLICK_TO_TOGGLE_KEY = 'codex-web-local.dictation-click-to-toggle.v1'
 const DICTATION_AUTO_SEND_KEY = 'codex-web-local.dictation-auto-send.v1'
 const DICTATION_LANGUAGE_KEY = 'codex-web-local.dictation-language.v1'
+const COMPOSIO_SUGGESTIONS_ENABLED_KEY = 'codex-web-local.composio-suggestions-enabled.v1'
 
 const CHAT_WIDTH_KEY = 'codex-web-local.chat-width.v1'
 const MOBILE_RESUME_RELOAD_MIN_HIDDEN_MS = 400
@@ -1552,6 +1560,7 @@ const chatWidth = ref<ChatWidthMode>(loadChatWidthPref())
 const dictationClickToToggle = ref(loadBoolPref(DICTATION_CLICK_TO_TOGGLE_KEY, false))
 const dictationAutoSend = ref(loadBoolPref(DICTATION_AUTO_SEND_KEY, true))
 const dictationLanguage = ref(loadDictationLanguagePref())
+const composioSuggestionsEnabled = ref(loadBoolPref(COMPOSIO_SUGGESTIONS_ENABLED_KEY, true))
 const dictationLanguageOptions = computed(() => buildDictationLanguageOptions())
 const showFirstLaunchPluginsCard = ref(false)
 const freeModeEnabled = ref(false)
@@ -4035,6 +4044,11 @@ function toggleDictationClickToToggle(): void {
 function toggleDictationAutoSend(): void {
   dictationAutoSend.value = !dictationAutoSend.value
   window.localStorage.setItem(DICTATION_AUTO_SEND_KEY, dictationAutoSend.value ? '1' : '0')
+}
+
+function toggleComposioSuggestions(): void {
+  composioSuggestionsEnabled.value = !composioSuggestionsEnabled.value
+  window.localStorage.setItem(COMPOSIO_SUGGESTIONS_ENABLED_KEY, composioSuggestionsEnabled.value ? '1' : '0')
 }
 
 
