@@ -256,30 +256,6 @@
           </div>
         </div>
 
-        <div v-if="visibleComposioSuggestions.length > 0" class="thread-composer-composio-suggestions">
-          <button
-            v-for="connector in visibleComposioSuggestions"
-            :key="connector.slug"
-            class="thread-composer-composio-suggestion"
-            type="button"
-            :disabled="isInteractionDisabled"
-            @mousedown.prevent="applyComposioSuggestion(connector)"
-          >
-            <span class="thread-composer-composio-suggestion-title">
-              Use {{ connector.name }}
-              <span v-if="connector.activeCount > 0">connected</span>
-            </span>
-            <span
-              class="thread-composer-composio-suggestion-meta"
-              :class="statusIconClass(connector)"
-              :title="statusIconTitle(connector)"
-              :aria-label="statusIconTitle(connector)"
-            >
-              {{ statusIconText(connector) }}
-            </span>
-          </button>
-        </div>
-
         <template v-if="!isDictationRecording">
           <ComposerDropdown
             class="thread-composer-control"
@@ -319,6 +295,30 @@
             :disabled="isComposerConfigDisabled"
             @update:model-value="onReasoningEffortSelect"
           />
+
+          <div v-if="visibleComposioSuggestions.length > 0" class="thread-composer-composio-suggestions">
+            <button
+              v-for="connector in visibleComposioSuggestions"
+              :key="connector.slug"
+              class="thread-composer-composio-suggestion"
+              type="button"
+              :disabled="isInteractionDisabled"
+              @mousedown.prevent="applyComposioSuggestion(connector)"
+            >
+              <span class="thread-composer-composio-suggestion-title">
+                Use {{ connector.name }}
+                <span v-if="connector.activeCount > 0">connected</span>
+              </span>
+              <span
+                class="thread-composer-composio-suggestion-meta"
+                :class="statusIconClass(connector)"
+                :title="statusIconTitle(connector)"
+                :aria-label="statusIconTitle(connector)"
+              >
+                {{ statusIconText(connector) }}
+              </span>
+            </button>
+          </div>
         </template>
 
         <div
@@ -554,7 +554,7 @@ type AttachmentBatchStats = {
 const CONTEXT_WINDOW_BASELINE_TOKENS = 12000
 const PASTED_TEXT_FILE_THRESHOLD = 2000
 const PROMPT_OPTION_PREFIX = 'prompt:'
-const COMPOSIO_SUGGESTION_LIMIT = 3
+const COMPOSIO_SUGGESTION_LIMIT = 1
 const COMPOSIO_REFRESH_INTERVAL_MS = 30_000
 
 const draft = ref('')
