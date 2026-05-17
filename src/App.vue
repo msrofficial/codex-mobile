@@ -1225,6 +1225,7 @@ type DirectoryTryItemPayload = {
   skillPath?: string
   prompt?: string
   attachedSkills?: Array<{ name: string; path: string }>
+  fileAttachments?: Array<{ label: string; path: string; fsPath: string }>
 }
 
 type ChatWidthPreset = {
@@ -4653,9 +4654,10 @@ async function onTryDirectoryItem(payload: DirectoryTryItemPayload): Promise<voi
     : payload.kind === 'skill' && payload.skillPath
     ? [{ name: payload.name, path: payload.skillPath }]
     : []
+  const fileAttachments = payload.fileAttachments?.length ? payload.fileAttachments : []
   try {
     const targetCwd = directoryCwd.value.trim() || composerCwd.value.trim()
-    const threadId = await sendMessageToNewThread(text, targetCwd, [], skills, [])
+    const threadId = await sendMessageToNewThread(text, targetCwd, [], skills, fileAttachments)
     if (!threadId) return
     await router.replace({ name: 'thread', params: { threadId } })
     scheduleMobileConversationJumpToLatest()

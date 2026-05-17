@@ -369,10 +369,10 @@
                 v-if="canTryComposio(connector)"
                 class="directory-action primary"
                 type="button"
-                :disabled="isTryActionInFlight"
+                :disabled="isTryActionInFlight || Boolean(composioTryUploadSlug)"
                 @click="tryComposio(connector)"
               >
-                {{ props.tryInFlightKey === composioTryKey(connector.slug) ? 'Starting...' : 'Try it!' }}
+                {{ props.tryInFlightKey === composioTryKey(connector.slug) || composioTryUploadSlug === connector.slug ? 'Starting...' : 'Try it!' }}
               </button>
             </div>
           </article>
@@ -695,10 +695,10 @@
               v-if="selectedComposioDetail && composioStatus?.available && composioStatus.authenticated && canTryComposio(selectedComposioDetail.connector)"
               class="directory-action primary"
               type="button"
-              :disabled="isTryActionInFlight"
+              :disabled="isTryActionInFlight || Boolean(composioTryUploadSlug)"
               @click="tryComposio(selectedComposioDetail.connector, selectedComposioDetail.connections)"
             >
-              {{ props.tryInFlightKey === composioTryKey(selectedComposioDetail.connector.slug) ? 'Starting...' : 'Try it!' }}
+              {{ props.tryInFlightKey === composioTryKey(selectedComposioDetail.connector.slug) || composioTryUploadSlug === selectedComposioDetail.connector.slug ? 'Starting...' : 'Try it!' }}
             </button>
           </div>
         </article>
@@ -729,6 +729,7 @@ import {
   startDirectoryComposioLogin,
   startDirectoryMcpLogin,
   uninstallDirectoryPlugin,
+  uploadFile,
   type DirectoryAppInfo,
   type DirectoryComposioConnection,
   type DirectoryComposioConnector,
@@ -740,11 +741,14 @@ import {
   type DirectoryPluginSummary,
 } from '../../api/codexGateway'
 import { HARDCODED_COMPOSIO_CONNECTORS } from './composioConnectorCatalog'
+import {
+  buildComposioConnectorDocument,
+  composioConnectorDocumentFileName,
+} from './composioComposerSuggestions'
 import { sortComposioConnectors, type DirectorySortMode } from './directoryHubUtils'
 import SkillsHub from './SkillsHub.vue'
 
 type DirectoryTab = 'plugins' | 'apps' | 'composio' | 'skills'
-const COMPOSIO_SKILL_PATH = '/Users/igor/.codex/skills/shared_skills/composio-cli/SKILL.md'
 const COMPOSIO_PAGE_LIMIT = 50
 const DEFAULT_COMPOSIO_DASHBOARD_URL = 'https://dashboard.composio.dev/'
 
@@ -806,6 +810,7 @@ export type DirectoryTryItemPayload = {
   skillPath?: string
   prompt?: string
   attachedSkills?: Array<{ name: string; path: string }>
+  fileAttachments?: Array<{ label: string; path: string; fsPath: string }>
 }
 
 const emit = defineEmits<{
@@ -879,6 +884,7 @@ const isLoggingOutComposio = ref(false)
 const isPluginActionInFlight = ref(false)
 const appActionId = ref('')
 const composioActionSlug = ref('')
+const composioTryUploadSlug = ref('')
 const installAuthApps = ref<DirectoryPluginAppSummary[]>([])
 const mcpLoginServerName = ref('')
 const expandedMcpNames = ref<Set<string>>(new Set())
@@ -1292,17 +1298,55 @@ function buildComposioTryPrompt(connector: DirectoryComposioConnector, connectio
   const accountHint = firstActive?.wordId
     ? ` If there are multiple accounts, prefer \`${firstActive.wordId}\`.`
     : ''
-  return `Use the Composio CLI skill with the ${connector.name} connector (${connector.slug}). Start by listing what it can do here, mention the current connection status, and suggest one safe command I can run now.${accountHint}`
+  return `Use the attached ${connector.name} Composio connector documentation for this request. Start by listing what it can do here, mention the current connection status, and suggest one safe action I can run now.${accountHint}`
 }
 
-function tryComposio(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = []): void {
-  if (isTryActionInFlight.value) return
+async function buildComposioTryAttachment(
+  connector: DirectoryComposioConnector,
+  connections: DirectoryComposioConnection[] = [],
+): Promise<{ label: string; path: string; fsPath: string } | null> {
+  let detail: DirectoryComposioConnectorDetail | null = null
+  try {
+    detail = await readDirectoryComposioConnector(connector.slug)
+  } catch {
+    detail = {
+      connector,
+      connections,
+      tools: [],
+      dashboardUrl: composioStatus.value?.webUrl || DEFAULT_COMPOSIO_DASHBOARD_URL,
+    }
+  }
+
+  const fileName = composioConnectorDocumentFileName(connector)
+  const document = buildComposioConnectorDocument(connector, detail)
+  const file = new File([document], fileName, {
+    type: 'text/markdown',
+    lastModified: Date.now(),
+  })
+  const serverPath = await uploadFile(file)
+  if (!serverPath) return null
+  return { label: fileName, path: serverPath, fsPath: serverPath }
+}
+
+async function tryComposio(connector: DirectoryComposioConnector, connections: DirectoryComposioConnection[] = []): Promise<void> {
+  if (isTryActionInFlight.value || composioTryUploadSlug.value) return
+  composioTryUploadSlug.value = connector.slug
+  let fileAttachment: { label: string; path: string; fsPath: string } | null = null
+  try {
+    fileAttachment = await buildComposioTryAttachment(connector, connections)
+  } finally {
+    composioTryUploadSlug.value = ''
+  }
+  if (!fileAttachment) {
+    showToast(`Failed to attach ${connector.name} documentation.`, 'error')
+    return
+  }
   emit('try-item', {
     kind: 'composio',
     name: connector.slug,
     displayName: connector.name,
     prompt: buildComposioTryPrompt(connector, connections),
-    attachedSkills: [{ name: 'composio-cli', path: COMPOSIO_SKILL_PATH }],
+    fileAttachments: [fileAttachment],
   })
 }
 

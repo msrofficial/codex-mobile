@@ -6185,3 +6185,33 @@ Composer Composio suggestion selection attaches connector documentation instead 
 - Remove any generated `composio-*.md` attachment chips from the composer before continuing unrelated tests.
 - Turn `Connector suggestions` back on if the verification disabled it.
 - Stop the temporary Vite server if it was only used for this check.
+
+---
+
+### Composio panel connected connector document attachment
+
+#### Feature/Change Name
+Composio panel connected connector `Try it!` starts a thread with connector documentation as a file attachment.
+
+#### Prerequisites/Setup
+1. Start local Vite: `pnpm run dev --host 127.0.0.1 --port 4173`.
+2. Log in to Composio and ensure at least one connector is connected, or use a no-auth connector.
+
+#### Steps
+1. In light theme, open `http://127.0.0.1:4173/#/skills?tab=composio`.
+2. Click `Try it!` on a connected connector card.
+3. Confirm the created thread's first user message includes one `composio-*.md` file attachment chip.
+4. Confirm the first user message does not include an attached `composio-cli` skill chip.
+5. Open a connected connector detail modal and click `Try it!` there.
+6. Confirm the same file-attachment behavior.
+7. Repeat in dark theme and confirm the panel, starting state, and rendered file chip remain readable.
+
+#### Expected Results
+- Connected and no-auth Composio panel `Try it!` actions upload generated connector documentation and pass it as a file attachment to the new thread.
+- The prompt references the attached documentation instead of asking to use the `composio-cli` skill.
+- Disconnected connectors still use the existing connect/login panel actions instead of creating a docs attachment.
+- Light and dark themes both render the Composio panel action and resulting file attachment clearly.
+
+#### Rollback/Cleanup
+- Delete any test threads created only for this check if desired.
+- Stop the temporary Vite server if it was only used for this check.
