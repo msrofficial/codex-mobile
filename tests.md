@@ -6158,16 +6158,17 @@ Composer Composio suggestion selection attaches connector documentation instead 
 6. Confirm the clicked connector word is removed from the draft, leaving earlier words intact.
 7. Confirm the `composio-cli` skill is not selected automatically.
 8. Type `gmail reddit butt` and confirm only one connector suggestion appears, it is Reddit, and Gmail plus the active `butt` word are ignored.
-9. Type `reddit` and confirm Reddit Ads is not suggested from the partial multi-word connector alias.
-10. Type `redditor` and confirm Reddit is not suggested from the partial larger word.
-11. For an unconnected connector, click its suggestion and confirm the app opens the Composio directory tab with that connector detail panel visible for install/login/connect.
-12. Confirm the single suggestion chip appears in the bottom controls row after Model, Skills, and Thinking controls, not before them and not over the text area.
-13. Repeat in dark theme and confirm the suggestion chips, directory panel, and file chip remain readable.
+9. Type `reddit ads butt` and confirm only one connector suggestion appears, it is Reddit Ads, because the full multi-word connector alias appears before the active word.
+10. Type `reddit` and confirm Reddit Ads is not suggested from the partial multi-word connector alias.
+11. Type `redditor` and confirm Reddit is not suggested from the partial larger word.
+12. For an unconnected connector, click its suggestion and confirm the app opens the Composio directory tab with that connector detail panel visible for install/login/connect.
+13. Confirm the single suggestion chip appears in the bottom controls row after Model, Skills, and Thinking controls, not before them and not over the text area.
+14. Repeat in dark theme and confirm the suggestion chips, directory panel, and file chip remain readable.
 
 #### Expected Results
 - Picking a Composio suggestion attaches a markdown file containing the connector instruction, description, metadata, available tools when detail fetch succeeds, and connection notes.
-- Suggestions are ranked from the completed connector word immediately before the active word, so `gmail reddit butt` and `lets make reddit bett` show only the top Reddit connector while ignoring earlier words and the current active word.
-- Exact matching is required, so `reddit` does not suggest Reddit Ads unless the full `reddit ads` alias is matched.
+- Suggestions are ranked from the connector alias suffix before the active word, so `gmail reddit butt` and `lets make reddit bett` show only the top Reddit connector while ignoring the current active word.
+- Exact matching is required for aliases, so `reddit` does not suggest Reddit Ads, but `reddit ads butt` suggests Reddit Ads because the full alias is complete before the active word.
 - Partial larger words do not match connector names, so `redditor` does not suggest Reddit.
 - The selected connector mention is removed from the draft after its file is attached or the connector panel opens.
 - Picking a suggestion does not automatically add the `composio-cli` skill chip.

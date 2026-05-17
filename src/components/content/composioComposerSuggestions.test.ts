@@ -42,7 +42,7 @@ describe('rankComposioSuggestions', () => {
     expect(rankComposioSuggestions([connector({ slug: 'reddit', name: 'Reddit' })], 'r')).toEqual([])
   })
 
-  it('matches the completed word before the active word', () => {
+  it('matches the connector suffix before the active word', () => {
     const rows = [
       connector({ slug: 'gmail', name: 'Gmail', toolsCount: 10 }),
       connector({ slug: 'reddit', name: 'Reddit', toolsCount: 10 }),
@@ -64,14 +64,16 @@ describe('rankComposioSuggestions', () => {
     ]
     expect(rankComposioSuggestions(rows, 'reddit').map((row) => row.slug)).toEqual(['reddit'])
     expect(rankComposioSuggestions(rows, 'reddit ads').map((row) => row.slug)).toEqual(['reddit_ads'])
+    expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('reddit ads butt')).map((row) => row.slug)).toEqual(['reddit_ads'])
   })
 })
 
 describe('getComposioSuggestionQuery', () => {
-  it('uses the completed connector word immediately before the active word', () => {
-    expect(getComposioSuggestionQuery('Gmail calendar reddit')).toBe('calendar')
-    expect(getComposioSuggestionQuery('lets make reddit bett')).toBe('reddit')
-    expect(getComposioSuggestionQuery('gmail reddit butt')).toBe('reddit')
+  it('uses the completed connector phrase before the active word', () => {
+    expect(getComposioSuggestionQuery('Gmail calendar reddit')).toBe('gmail calendar')
+    expect(getComposioSuggestionQuery('lets make reddit bett')).toBe('lets make reddit')
+    expect(getComposioSuggestionQuery('gmail reddit butt')).toBe('gmail reddit')
+    expect(getComposioSuggestionQuery('reddit ads butt')).toBe('reddit ads')
     expect(getComposioSuggestionQuery('reddit')).toBe('reddit')
     expect(getComposioSuggestionQuery('reddit ')).toBe('reddit')
   })

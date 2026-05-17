@@ -15,8 +15,8 @@ export function getComposioSuggestionQuery(value: string): string {
   const trimmed = value.trimEnd()
   const tokens = [...trimmed.matchAll(/[a-z0-9][a-z0-9_-]*/giu)].map((match) => match[0].toLowerCase())
   if (tokens.length === 0) return ''
-  if (/\s$/u.test(value)) return tokens.at(-1) ?? ''
-  return tokens.length > 1 ? tokens.at(-2) ?? '' : tokens[0] ?? ''
+  if (/\s$/u.test(value)) return tokens.join(' ')
+  return tokens.length > 1 ? tokens.slice(0, -1).join(' ') : tokens[0] ?? ''
 }
 
 export function removeComposioSuggestionQuery(value: string): string {
@@ -74,9 +74,12 @@ function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQu
 
 function scoreComposioSuggestion(connector: DirectoryComposioConnector, fullQuery: string): number {
   const normalizedQuery = normalizeAlias(fullQuery)
-  const isExactAlias = connectorAliases(connector).some((alias) => normalizeAlias(alias) === normalizedQuery)
-  if (!isExactAlias) return 0
-  let score = normalizedQuery.length * 1_000
+  const matchedAlias = connectorAliases(connector)
+    .map(normalizeAlias)
+    .filter((alias) => normalizedQuery === alias || normalizedQuery.endsWith(` ${alias}`))
+    .sort((first, second) => second.length - first.length)[0]
+  if (!matchedAlias) return 0
+  let score = matchedAlias.length * 1_000
   if (connector.activeCount > 0) score += 500
   else if (connector.totalConnections > 0) score += 250
   else if (connector.isNoAuth) score += 100
