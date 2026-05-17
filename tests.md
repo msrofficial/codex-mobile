@@ -388,7 +388,7 @@ Realtime Composio connector suggestions in the chat composer.
 2. Confirm a single connector suggestion appears in the bottom controls row after Model, Skills, and Thinking.
 3. Confirm Reddit is shown and, if connected, the suggestion copy indicates it is connected.
 4. Click the Reddit suggestion.
-5. Confirm a `composio-reddit.md` file chip is attached, the Reddit mention is removed from the draft, and no `composio-cli` skill chip is added automatically.
+5. Confirm a `composio-reddit.md` file chip is attached, the composer text remains unchanged, and no `composio-cli` skill chip is added automatically.
 6. Clear the draft, type another connector name such as `gmail`, and confirm the matching suggestion updates while typing.
 7. Type `@` to open file mentions and confirm the Composio suggestion strip does not interfere with the file mention popup.
 8. Log out of Composio and repeat steps 1-7.
@@ -6155,7 +6155,7 @@ Composer Composio suggestion selection attaches connector documentation instead 
 3. Select one Composio suggestion chip.
 4. Confirm the composer text is not expanded with a copied instruction sentence.
 5. Confirm a file chip appears with a name like `composio-reddit.md`.
-6. Confirm the clicked connector word is removed from the draft, leaving earlier words intact.
+6. Confirm the clicked connector word stays in the draft and the rest of the composer text remains unchanged.
 7. Confirm the `composio-cli` skill is not selected automatically.
 8. Type `gmail reddit butt` and confirm only one connector suggestion appears, it is Reddit, and Gmail plus the active `butt` word are ignored.
 9. Type `reddit ads butt` and confirm only one connector suggestion appears, it is Reddit Ads, because the full multi-word connector alias appears before the active word.
@@ -6174,7 +6174,7 @@ Composer Composio suggestion selection attaches connector documentation instead 
 - Exact matching is required for aliases, so `reddit` does not suggest Reddit Ads, but `reddit ads butt` suggests Reddit Ads because the full alias is complete before the active word.
 - The Settings `Connector suggestions` toggle disables composer suggestions immediately, persists across reloads, and does not hide the Composio connector catalog/panel.
 - Partial larger words do not match connector names, so `redditor` does not suggest Reddit.
-- The selected connector mention is removed from the draft after its file is attached or the connector panel opens.
+- The composer text remains unchanged after a connector file is attached or the connector panel opens.
 - Picking a suggestion does not automatically add the `composio-cli` skill chip.
 - Unconnected connectors open the Composio connector detail panel instead of attaching a docs file immediately.
 - Re-selecting the same connector does not attach duplicate connector files.
