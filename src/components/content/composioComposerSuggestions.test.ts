@@ -3,6 +3,7 @@ import type { DirectoryComposioConnector } from '../../api/codexGateway'
 import {
   buildComposioConnectorDocument,
   composioConnectorDocumentFileName,
+  getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
 } from './composioComposerSuggestions'
@@ -37,6 +38,14 @@ describe('rankComposioSuggestions', () => {
 
   it('returns empty results for too-short generic text', () => {
     expect(rankComposioSuggestions([connector({ slug: 'reddit', name: 'Reddit' })], 'r')).toEqual([])
+  })
+})
+
+describe('getComposioSuggestionQuery', () => {
+  it('uses only the current trailing connector word', () => {
+    expect(getComposioSuggestionQuery('gmail calendar reddit')).toBe('reddit')
+    expect(getComposioSuggestionQuery('gmail calendar reddit ')).toBe('reddit')
+    expect(getComposioSuggestionQuery('use reddit, then gmail')).toBe('gmail')
   })
 })
 

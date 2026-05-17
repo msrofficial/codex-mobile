@@ -446,6 +446,7 @@ import { HARDCODED_COMPOSIO_CONNECTORS } from './composioConnectorCatalog'
 import {
   buildComposioConnectorDocument,
   composioConnectorDocumentFileName,
+  getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
 } from './composioComposerSuggestions'
@@ -550,7 +551,6 @@ type AttachmentBatchStats = {
 const CONTEXT_WINDOW_BASELINE_TOKENS = 12000
 const PASTED_TEXT_FILE_THRESHOLD = 2000
 const PROMPT_OPTION_PREFIX = 'prompt:'
-const COMPOSIO_SKILL_PATH = '/Users/igor/.codex/skills/shared_skills/composio-cli/SKILL.md'
 const COMPOSIO_SUGGESTION_LIMIT = 3
 const COMPOSIO_REFRESH_INTERVAL_MS = 30_000
 
@@ -651,7 +651,7 @@ const isPlanModeWaitingForModel = computed(() =>
 const selectedSkillPaths = computed(() => selectedSkills.value.map((s) => s.path))
 const visibleComposioSuggestions = computed(() => {
   if (isFileMentionOpen.value) return []
-  const query = draft.value.trim().toLowerCase()
+  const query = getComposioSuggestionQuery(draft.value)
   if (query.length < 2) return []
   return rankComposioSuggestions(composioConnectors.value, query).slice(0, COMPOSIO_SUGGESTION_LIMIT)
 })
@@ -1754,24 +1754,7 @@ async function refreshComposioSuggestions(force = false): Promise<void> {
   }
 }
 
-function ensureComposioSkillSelected(): void {
-  if (selectedSkills.value.some((skill) => skill.path === COMPOSIO_SKILL_PATH)) return
-  const existing = (props.skills ?? []).find((skill) => skill.path === COMPOSIO_SKILL_PATH)
-  selectedSkills.value = [
-    ...selectedSkills.value,
-    existing ?? {
-      name: 'composio-cli',
-      displayName: 'composio-cli',
-      description: 'Use Composio CLI connectors',
-      path: COMPOSIO_SKILL_PATH,
-      scope: 'user',
-      enabled: true,
-    },
-  ]
-}
-
 async function applyComposioSuggestion(connector: DirectoryComposioConnector): Promise<void> {
-  ensureComposioSkillSelected()
   const fileName = composioConnectorDocumentFileName(connector)
   if (fileAttachments.value.some((attachment) => attachment.label === fileName)) {
     void nextTick(() => inputRef.value?.focus())

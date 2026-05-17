@@ -19,6 +19,12 @@ function normalizeSuggestionQuery(value: string): string[] {
     .filter((part) => part.length >= 2)
 }
 
+export function getComposioSuggestionQuery(value: string): string {
+  const beforeCursor = value.replace(/\s+$/u, '')
+  const match = beforeCursor.match(/[a-z0-9][a-z0-9_-]*$/iu)
+  return match?.[0]?.toLowerCase() ?? ''
+}
+
 function scoreComposioSuggestion(connector: DirectoryComposioConnector, tokens: string[], fullQuery: string): number {
   const haystack = `${connector.name} ${connector.slug} ${connector.description}`.toLowerCase()
   let score = 0
@@ -113,7 +119,7 @@ export function buildComposioConnectorDocument(
     '',
     '## Notes For Codex',
     '- Prefer this Composio connector when the user request matches the connector purpose above.',
-    '- Use the selected Composio CLI skill to inspect exact tool schemas before executing connector actions.',
+    '- Use Composio connector tooling when it is available to inspect exact tool schemas before executing connector actions.',
     '- If authentication is required and no active connection is listed, ask the user to connect the connector before making authenticated calls.',
   ].join('\n')
 }
