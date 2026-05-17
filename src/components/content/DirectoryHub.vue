@@ -260,7 +260,7 @@
               :disabled="isStartingComposioLogin"
               @click="startComposioCliLogin"
             >
-              {{ isStartingComposioLogin ? 'Opening...' : 'Login to Composio' }}
+              {{ isStartingComposioLogin ? 'Waiting...' : 'Login to Composio' }}
             </button>
             <button class="directory-action-link" type="button" @click="openExternalUrl(composioStatus?.webUrl || DEFAULT_COMPOSIO_DASHBOARD_URL)">
               Open dashboard
@@ -363,7 +363,7 @@
                 :disabled="composioActionSlug === connector.slug"
                 @click="runComposioPrimaryAction(connector)"
               >
-                {{ composioActionSlug === connector.slug ? 'Opening...' : composioPrimaryActionLabel(connector) }}
+                {{ composioActionSlug === connector.slug ? 'Waiting...' : composioPrimaryActionLabel(connector) }}
               </button>
               <button
                 v-if="canTryComposio(connector)"
@@ -680,7 +680,7 @@
               :disabled="isStartingComposioLogin"
               @click="startComposioCliLogin"
             >
-              {{ isStartingComposioLogin ? 'Opening...' : 'Login to Composio' }}
+              {{ isStartingComposioLogin ? 'Waiting...' : 'Login to Composio' }}
             </button>
             <button
               v-else-if="selectedComposioDetail && composioPrimaryActionLabel(selectedComposioDetail.connector)"
@@ -689,7 +689,7 @@
               :disabled="composioActionSlug === selectedComposioDetail.connector.slug"
               @click="runComposioPrimaryAction(selectedComposioDetail.connector)"
             >
-              {{ composioActionSlug === selectedComposioDetail?.connector.slug ? 'Opening...' : composioPrimaryActionLabel(selectedComposioDetail.connector) }}
+              {{ composioActionSlug === selectedComposioDetail?.connector.slug ? 'Waiting...' : composioPrimaryActionLabel(selectedComposioDetail.connector) }}
             </button>
             <button
               v-if="selectedComposioDetail && composioStatus?.available && composioStatus.authenticated && canTryComposio(selectedComposioDetail.connector)"
@@ -751,6 +751,8 @@ import SkillsHub from './SkillsHub.vue'
 type DirectoryTab = 'plugins' | 'apps' | 'composio' | 'skills'
 const COMPOSIO_PAGE_LIMIT = 50
 const DEFAULT_COMPOSIO_DASHBOARD_URL = 'https://dashboard.composio.dev/'
+const COMPOSIO_AUTH_POLL_INTERVAL_MS = 2_000
+const COMPOSIO_AUTH_POLL_TIMEOUT_MS = 120_000
 
 const POPULAR_LIMIT = 100
 const POPULAR_APP_NAME_BONUSES: Array<[RegExp, number]> = [
@@ -1356,6 +1358,17 @@ function openExternalUrl(rawUrl: string): void {
   window.location.assign(url)
 }
 
+function openExternalUrlInNewTab(rawUrl: string): boolean {
+  const url = rawUrl.trim()
+  if (!/^https?:\/\//i.test(url)) return false
+  const tab = window.open(url, '_blank', 'noopener,noreferrer')
+  return Boolean(tab)
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function openFirstAppLoginIfNeeded(apps: DirectoryPluginAppSummary[]): boolean {
   const app = apps.find((row) => row.needsAuth && row.installUrl.trim().length > 0)
   if (!app) return false
@@ -1575,12 +1588,13 @@ async function startComposioConnect(connector: DirectoryComposioConnector): Prom
       showToast(`No login URL returned for ${connector.name}`, 'error')
       return
     }
-    openExternalUrl(result.redirectUrl)
-    showToast(`Opened ${connector.name} authorization`)
-    await loadComposio()
-    if (isComposioDetailOpen.value && selectedComposioDetail.value?.connector.slug === connector.slug) {
-      await openComposioDetail(connector.slug)
+    if (!openExternalUrlInNewTab(result.redirectUrl)) {
+      showToast(`Popup blocked. Allow popups to connect ${connector.name}.`, 'error')
+      return
     }
+    showToast(`Waiting for ${connector.name} connection...`)
+    await waitForComposioConnectorConnection(connector.slug)
+    showToast(`${connector.name} connected`)
   } catch (error) {
     showToast(error instanceof Error ? error.message : `Failed to connect ${connector.name}`, 'error')
   } finally {
@@ -1607,11 +1621,14 @@ async function startComposioCliLogin(): Promise<void> {
     if (result.loginUrl && loginTab) {
       loginTab.location.href = result.loginUrl
     } else if (result.loginUrl) {
-      openExternalUrl(result.loginUrl)
+      showToast('Popup blocked. Allow popups to login to Composio.', 'error')
+      return
     } else {
       loginTab?.close()
     }
-    showToast('Composio CLI login started')
+    showToast('Waiting for Composio login...')
+    await waitForComposioLogin()
+    showToast('Composio CLI logged in')
   } catch (error) {
     loginTab?.close()
     showToast(error instanceof Error ? error.message : 'Failed to start Composio login', 'error')
@@ -1645,6 +1662,38 @@ async function logoutComposioCli(): Promise<void> {
   } finally {
     isLoggingOutComposio.value = false
   }
+}
+
+async function waitForComposioLogin(): Promise<void> {
+  const deadline = Date.now() + COMPOSIO_AUTH_POLL_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    const status = await getDirectoryComposioStatus()
+    composioStatus.value = status
+    if (status.available && status.authenticated) {
+      await loadComposio()
+      return
+    }
+    await sleep(COMPOSIO_AUTH_POLL_INTERVAL_MS)
+  }
+  await loadComposio()
+  throw new Error('Timed out waiting for Composio login to complete')
+}
+
+async function waitForComposioConnectorConnection(slug: string): Promise<void> {
+  const deadline = Date.now() + COMPOSIO_AUTH_POLL_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    await loadComposio()
+    const connector = composioConnectors.value.find((row) => row.slug === slug)
+    if (connector && (connector.activeCount > 0 || connector.isNoAuth)) {
+      if (isComposioDetailOpen.value && selectedComposioDetail.value?.connector.slug === slug) {
+        await openComposioDetail(slug)
+      }
+      return
+    }
+    await sleep(COMPOSIO_AUTH_POLL_INTERVAL_MS)
+  }
+  await loadComposio()
+  throw new Error('Timed out waiting for Composio connector connection to complete')
 }
 
 async function installSelectedPlugin(): Promise<void> {

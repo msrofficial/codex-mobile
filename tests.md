@@ -4424,12 +4424,12 @@ The `#/skills` route shows a full Skills & Apps directory with Plugins, Apps, Co
 17. Search Apps and verify matching results are not capped to the Popular top 100 list
 18. Switch to `Composio` and verify the workspace summary card shows the current installed Composio CLI login state, or a clear not-installed / not-authenticated message appears
 19. If Composio CLI is not installed, click `Install Composio` and verify the app installs the CLI to `~/.composio/composio` using the official Composio installer
-20. If Composio is available but not authenticated, click `Login` and verify the app opens a new tab, starts the installed `composio login --no-browser -y`, captures the returned auth URL, and navigates the new tab to that URL
+20. If Composio is available but not authenticated, click `Login` and verify the app opens a new tab, starts the installed `composio login --no-browser -y`, captures the returned auth URL, navigates the new tab to that URL, and keeps the login action in a waiting state until the local status refresh reports authenticated or a timeout appears
 21. Verify Composio connector cards show real connector details such as tool counts, trigger counts, auth mode, and connection state instead of only aggregate totals
 22. In Composio search, type `instagram` and verify the Instagram connector appears first when it is returned by the connector source, ahead of description-only matches such as Meta Ads
-23. Open a disconnected Composio connector and click `Connect` or `Reconnect`; verify the returned `connect.composio.dev` authorization URL opens
+23. Open a disconnected Composio connector and click `Connect` or `Reconnect`; verify the returned `connect.composio.dev` authorization URL opens in a new tab and the Composio connector list/detail refreshes after the selected connector reports an active connection
 24. Open a connected Composio connector and verify connection rows show account identifiers and statuses such as `Active` or `Expired`
-25. Click `Try it!` on a connected or no-auth Composio connector and verify a new thread opens with a Composio-specific prompt and the `composio-cli` skill attached
+25. Click `Try it!` on a connected or no-auth Composio connector and verify a new thread opens with a Composio-specific prompt and a generated `composio-*.md` file attachment instead of the `composio-cli` skill chip
 26. On Composio, verify that if more than one page exists, `Load more` appears and appends additional connectors while keeping prior results visible
 27. In Composio search, verify the page state resets (the list returns to the first result page and stale pagination is cleared)
 28. Switch to `Skills` and verify the view shows an `MCPs(count)` collapsible section immediately before the `Installed skills (count)` section
@@ -4451,11 +4451,12 @@ The `#/skills` route shows a full Skills & Apps directory with Plugins, Apps, Co
 - Disconnected apps are labeled `Login`; connected apps are labeled `Manage`
 - The Composio tab uses the installed Composio CLI, preferring `CODEXUI_COMPOSIO_COMMAND` when set and otherwise `~/.composio/composio` or `composio` on `PATH`
 - The Composio install action uses the official installer and produces a working `~/.composio/composio` binary
-- The Composio login action opens a new tab from the click, starts the installed `composio login --no-browser -y`, then navigates that tab to the returned auth URL
+- The Composio login action opens a new tab from the click, starts the installed `composio login --no-browser -y`, navigates that tab to the returned auth URL, polls local status, and refreshes the Composio tab after login completes
+- Composio connector connect/reconnect opens the authorization URL in a new tab, polls until the selected connector has an active connection, then refreshes connector cards and the open detail modal
 - Composio connector cards and detail views show concrete connector details, connection rows, and useful tool samples
 - Composio search prioritizes exact slug/name matches above connectors that only mention the query in their description
 - Unit coverage verifies that Composio exact query matches outrank description-only matches and that gateway connector search sends `query`, `cursor`, and `limit` params expected by the server
-- Connected or no-auth Composio connectors expose `Try it!`, creating a new chat with the `composio-cli` skill attached
+- Connected or no-auth Composio connectors expose `Try it!`, creating a new chat with generated connector documentation attached as a file
 - Composio pagination supports page-by-page loading with a clear `Load more` path and cursor-based page continuation
 - Plugin install opens the first required app login/manage page before falling back to bundled MCP OAuth login
 - Plugin install is blocked with `ChatGPT Plus` when the plugin requires an app that is absent from the Apps catalog for the current account
