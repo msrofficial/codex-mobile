@@ -6,6 +6,7 @@ import {
   getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
+  removeComposioSuggestionQuery,
 } from './composioComposerSuggestions'
 
 function connector(overrides: Partial<DirectoryComposioConnector>): DirectoryComposioConnector {
@@ -46,6 +47,12 @@ describe('getComposioSuggestionQuery', () => {
     expect(getComposioSuggestionQuery('gmail calendar reddit')).toBe('reddit')
     expect(getComposioSuggestionQuery('gmail calendar reddit ')).toBe('reddit')
     expect(getComposioSuggestionQuery('use reddit, then gmail')).toBe('gmail')
+  })
+
+  it('removes the trailing connector word after selecting a suggestion', () => {
+    expect(removeComposioSuggestionQuery('gmail calendar reddit')).toBe('gmail calendar')
+    expect(removeComposioSuggestionQuery('gmail calendar reddit ')).toBe('gmail calendar')
+    expect(removeComposioSuggestionQuery('reddit')).toBe('')
   })
 })
 

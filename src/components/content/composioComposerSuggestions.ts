@@ -25,6 +25,10 @@ export function getComposioSuggestionQuery(value: string): string {
   return match?.[0]?.toLowerCase() ?? ''
 }
 
+export function removeComposioSuggestionQuery(value: string): string {
+  return value.replace(/(?:^|\s+)[a-z0-9][a-z0-9_-]*\s*$/iu, '')
+}
+
 function scoreComposioSuggestion(connector: DirectoryComposioConnector, tokens: string[], fullQuery: string): number {
   const haystack = `${connector.name} ${connector.slug} ${connector.description}`.toLowerCase()
   let score = 0

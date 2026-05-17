@@ -449,6 +449,7 @@ import {
   getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
+  removeComposioSuggestionQuery,
 } from './composioComposerSuggestions'
 import IconTablerArrowUp from '../icons/IconTablerArrowUp.vue'
 import IconTablerBolt from '../icons/IconTablerBolt.vue'
@@ -1783,6 +1784,7 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
       return
     }
     addFileAttachment(serverPath, fileName)
+    draft.value = removeComposioSuggestionQuery(draft.value)
     recordAttachmentBatchResult('success')
   } catch {
     if (sessionToken === attachmentSessionToken) {

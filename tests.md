@@ -6155,13 +6155,15 @@ Composer Composio suggestion selection attaches connector documentation instead 
 3. Select one Composio suggestion chip.
 4. Confirm the composer text is not expanded with a copied instruction sentence.
 5. Confirm a file chip appears with a name like `composio-reddit.md`.
-6. Confirm the `composio-cli` skill is not selected automatically.
-7. Add a trailing space after the last connector word and confirm suggestions still target that just-completed last word.
-8. Repeat in dark theme and confirm the suggestion chips and file chip remain readable.
+6. Confirm the clicked connector word is removed from the draft, leaving earlier words intact.
+7. Confirm the `composio-cli` skill is not selected automatically.
+8. Add a trailing space after the last connector word and confirm suggestions still target that just-completed last word.
+9. Repeat in dark theme and confirm the suggestion chips and file chip remain readable.
 
 #### Expected Results
 - Picking a Composio suggestion attaches a markdown file containing the connector instruction, description, metadata, available tools when detail fetch succeeds, and connection notes.
 - Suggestions are ranked from only the current trailing connector word, so `gmail calendar reddit` suggests Reddit instead of earlier words.
+- The selected trailing connector word is removed from the draft after its file is attached.
 - Picking a suggestion does not automatically add the `composio-cli` skill chip.
 - Re-selecting the same connector does not attach duplicate connector files.
 - The flow still works when Composio is logged out by falling back to catalog documentation.
