@@ -57,12 +57,13 @@ describe('rankComposioSuggestions', () => {
     expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('redditor'))).toEqual([])
   })
 
-  it('matches standalone words inside multi-word connector names', () => {
+  it('requires exact connector aliases instead of partial multi-word aliases', () => {
     const rows = [
       connector({ slug: 'reddit', name: 'Reddit', toolsCount: 10 }),
       connector({ slug: 'reddit_ads', name: 'Reddit Ads', toolsCount: 83 }),
     ]
-    expect(rankComposioSuggestions(rows, 'reddit').map((row) => row.slug)).toEqual(['reddit', 'reddit_ads'])
+    expect(rankComposioSuggestions(rows, 'reddit').map((row) => row.slug)).toEqual(['reddit'])
+    expect(rankComposioSuggestions(rows, 'reddit ads').map((row) => row.slug)).toEqual(['reddit_ads'])
   })
 })
 

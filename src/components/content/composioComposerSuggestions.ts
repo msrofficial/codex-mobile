@@ -46,16 +46,16 @@ function aliasPattern(alias: string): RegExp {
   return new RegExp(`(^|[^a-z0-9])(${separatorAware})(?=$|[^a-z0-9])`, 'giu')
 }
 
-type ComposioMentionMatch = { index: number; length: number; isFullAlias: boolean }
-
-function connectorAliasTokens(connector: DirectoryComposioConnector): string[] {
-  return [...new Set(
-    connectorAliases(connector)
-      .flatMap((alias) => alias.split(/[\s_-]+/u))
-      .map((token) => token.trim().toLowerCase())
-      .filter((token) => token.length >= 2),
-  )]
+function normalizeAlias(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .split(/[\s_-]+/u)
+    .filter(Boolean)
+    .join(' ')
 }
+
+type ComposioMentionMatch = { index: number; length: number }
 
 function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQuery: string): ComposioMentionMatch | null {
   let latest: ComposioMentionMatch | null = null
@@ -65,17 +65,7 @@ function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQu
       const matched = match[2] ?? ''
       const index = (match.index ?? 0) + ((match[1] ?? '').length)
       if (!latest || index > latest.index || (index === latest.index && matched.length > latest.length)) {
-        latest = { index, length: matched.length, isFullAlias: true }
-      }
-    }
-  }
-  for (const token of connectorAliasTokens(connector)) {
-    const pattern = aliasPattern(token)
-    for (const match of fullQuery.matchAll(pattern)) {
-      const matched = match[2] ?? ''
-      const index = (match.index ?? 0) + ((match[1] ?? '').length)
-      if (!latest || index > latest.index || (index === latest.index && latest.isFullAlias === false && matched.length > latest.length)) {
-        latest = { index, length: matched.length, isFullAlias: false }
+        latest = { index, length: matched.length }
       }
     }
   }
@@ -83,10 +73,10 @@ function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQu
 }
 
 function scoreComposioSuggestion(connector: DirectoryComposioConnector, fullQuery: string): number {
-  const latestMatch = findLatestExactAliasMatch(connector, fullQuery)
-  if (!latestMatch) return 0
-  let score = latestMatch.index * 100_000 + latestMatch.length * 1_000
-  if (latestMatch.isFullAlias) score += 50_000
+  const normalizedQuery = normalizeAlias(fullQuery)
+  const isExactAlias = connectorAliases(connector).some((alias) => normalizeAlias(alias) === normalizedQuery)
+  if (!isExactAlias) return 0
+  let score = normalizedQuery.length * 1_000
   if (connector.activeCount > 0) score += 500
   else if (connector.totalConnections > 0) score += 250
   else if (connector.isNoAuth) score += 100
