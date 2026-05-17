@@ -6151,20 +6151,21 @@ Composer Composio suggestion selection attaches connector documentation instead 
 
 #### Steps
 1. In light theme, open `http://127.0.0.1:4173/#/` or an existing thread.
-2. Type a sentence with an exact connector mention followed by more text, such as `lets make reddit bett`.
+2. Type a sentence with an exact connector mention followed by an active word, such as `lets make reddit bett`.
 3. Select one Composio suggestion chip.
 4. Confirm the composer text is not expanded with a copied instruction sentence.
 5. Confirm a file chip appears with a name like `composio-reddit.md`.
 6. Confirm the clicked connector word is removed from the draft, leaving earlier words intact.
 7. Confirm the `composio-cli` skill is not selected automatically.
-8. Type `redditor` and confirm Reddit is not suggested from the partial larger word.
-9. For an unconnected connector, click its suggestion and confirm the app opens the Composio directory tab with that connector detail panel visible for install/login/connect.
-10. Confirm suggestion chips appear in the bottom controls row beside the add/model/skills/reasoning controls, not over the text area.
-11. Repeat in dark theme and confirm the suggestion chips, directory panel, and file chip remain readable.
+8. Type `gmail reddit butt` and confirm Reddit is suggested while Gmail and the active `butt` word are ignored.
+9. Type `redditor` and confirm Reddit is not suggested from the partial larger word.
+10. For an unconnected connector, click its suggestion and confirm the app opens the Composio directory tab with that connector detail panel visible for install/login/connect.
+11. Confirm suggestion chips appear in the bottom controls row beside the add/model/skills/reasoning controls, not over the text area.
+12. Repeat in dark theme and confirm the suggestion chips, directory panel, and file chip remain readable.
 
 #### Expected Results
 - Picking a Composio suggestion attaches a markdown file containing the connector instruction, description, metadata, available tools when detail fetch succeeds, and connection notes.
-- Suggestions are ranked from exact connector mentions anywhere in the draft, so `lets make reddit bett` suggests Reddit even though `bett` is the last word.
+- Suggestions are ranked from the completed connector word immediately before the active word, so `gmail reddit butt` and `lets make reddit bett` suggest Reddit while ignoring earlier words and the current active word.
 - Partial larger words do not match connector names, so `redditor` does not suggest Reddit.
 - The selected connector mention is removed from the draft after its file is attached or the connector panel opens.
 - Picking a suggestion does not automatically add the `composio-cli` skill chip.

@@ -42,18 +42,19 @@ describe('rankComposioSuggestions', () => {
     expect(rankComposioSuggestions([connector({ slug: 'reddit', name: 'Reddit' })], 'r')).toEqual([])
   })
 
-  it('matches exact connector mentions anywhere in the draft and prefers the latest mention', () => {
+  it('matches the completed word before the active word', () => {
     const rows = [
       connector({ slug: 'gmail', name: 'Gmail', toolsCount: 10 }),
       connector({ slug: 'reddit', name: 'Reddit', toolsCount: 10 }),
     ]
-    expect(rankComposioSuggestions(rows, 'lets make reddit bett')[0]?.slug).toBe('reddit')
-    expect(rankComposioSuggestions(rows, 'reddit first then GMAIL later')[0]?.slug).toBe('gmail')
+    expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('lets make reddit bett'))[0]?.slug).toBe('reddit')
+    expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('gmail reddit butt'))[0]?.slug).toBe('reddit')
+    expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('reddit first then GMAIL later'))[0]?.slug).toBe('gmail')
   })
 
   it('does not match connector names inside larger words', () => {
     const rows = [connector({ slug: 'reddit', name: 'Reddit' })]
-    expect(rankComposioSuggestions(rows, 'redditor')).toEqual([])
+    expect(rankComposioSuggestions(rows, getComposioSuggestionQuery('redditor'))).toEqual([])
   })
 
   it('matches standalone words inside multi-word connector names', () => {
@@ -66,9 +67,12 @@ describe('rankComposioSuggestions', () => {
 })
 
 describe('getComposioSuggestionQuery', () => {
-  it('normalizes the current draft for exact connector matching', () => {
-    expect(getComposioSuggestionQuery('Gmail calendar reddit')).toBe('gmail calendar reddit')
-    expect(getComposioSuggestionQuery('lets make reddit bett ')).toBe('lets make reddit bett')
+  it('uses the completed connector word immediately before the active word', () => {
+    expect(getComposioSuggestionQuery('Gmail calendar reddit')).toBe('calendar')
+    expect(getComposioSuggestionQuery('lets make reddit bett')).toBe('reddit')
+    expect(getComposioSuggestionQuery('gmail reddit butt')).toBe('reddit')
+    expect(getComposioSuggestionQuery('reddit')).toBe('reddit')
+    expect(getComposioSuggestionQuery('reddit ')).toBe('reddit')
   })
 
   it('removes the trailing connector word after selecting a suggestion', () => {

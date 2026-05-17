@@ -12,7 +12,11 @@ export function mergeComposioConnectors(
 }
 
 export function getComposioSuggestionQuery(value: string): string {
-  return value.trim().toLowerCase()
+  const trimmed = value.trimEnd()
+  const tokens = [...trimmed.matchAll(/[a-z0-9][a-z0-9_-]*/giu)].map((match) => match[0].toLowerCase())
+  if (tokens.length === 0) return ''
+  if (/\s$/u.test(value)) return tokens.at(-1) ?? ''
+  return tokens.length > 1 ? tokens.at(-2) ?? '' : tokens[0] ?? ''
 }
 
 export function removeComposioSuggestionQuery(value: string): string {
