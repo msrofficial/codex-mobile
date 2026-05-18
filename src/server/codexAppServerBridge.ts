@@ -229,6 +229,10 @@ type ComposioConnectorPage = {
 }
 
 const COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX = 1000
+const COMPOSIO_STATUS_CACHE_TTL_MS = 10_000
+const COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS = 60_000
+const COMPOSIO_CONNECTIONS_CACHE_TTL_MS = 10_000
+const COMPOSIO_CONNECTOR_DETAIL_CACHE_TTL_MS = 30_000
 
 const PROVIDER_MODELS_FETCH_TIMEOUT_MS = 5_000
 
@@ -1692,6 +1696,32 @@ function readNumber(value: unknown): number {
 }
 
 type ComposioCliInvocation = { command: string; args: string[]; displayCommand: string }
+type TimedCacheEntry<T> = { value: T; expiresAt: number }
+
+let cachedComposioVersionProbe: TimedCacheEntry<{ available: boolean; cliVersion: string; output: string }> | null = null
+let cachedComposioStatus: TimedCacheEntry<ComposioStatusResponse> | null = null
+let cachedComposioFirstPageRows: TimedCacheEntry<ComposioConnectorSummary[]> | null = null
+let cachedComposioToolkitRows: TimedCacheEntry<ComposioConnectorSummary[]> | null = null
+let cachedComposioConnectionsBySlug: TimedCacheEntry<Map<string, ComposioConnectionSummary[]>> | null = null
+const cachedComposioDetails = new Map<string, TimedCacheEntry<ComposioConnectorDetail>>()
+
+function readTimedCache<T>(entry: TimedCacheEntry<T> | null): T | null {
+  if (!entry || entry.expiresAt <= Date.now()) return null
+  return entry.value
+}
+
+function writeTimedCache<T>(value: T, ttlMs: number): TimedCacheEntry<T> {
+  return { value, expiresAt: Date.now() + ttlMs }
+}
+
+function clearComposioCaches(): void {
+  cachedComposioVersionProbe = null
+  cachedComposioStatus = null
+  cachedComposioFirstPageRows = null
+  cachedComposioToolkitRows = null
+  cachedComposioConnectionsBySlug = null
+  cachedComposioDetails.clear()
+}
 
 function buildComposioInvocation(args: string[]): ComposioCliInvocation | null {
   const overrideCommand = process.env.CODEXUI_COMPOSIO_COMMAND?.trim()
@@ -1741,7 +1771,10 @@ function probeComposioInvocation(invocation: ComposioCliInvocation): { available
 function resolveComposioInvocation(args: string[]): ComposioCliInvocation | null {
   const invocation = buildComposioInvocation(args)
   const versionInvocation = buildComposioInvocation(['--version'])
-  if (invocation && versionInvocation && probeComposioInvocation(versionInvocation).available) return invocation
+  const cachedProbe = readTimedCache(cachedComposioVersionProbe)
+  const probe = cachedProbe ?? (versionInvocation ? probeComposioInvocation(versionInvocation) : null)
+  if (!cachedProbe && probe) cachedComposioVersionProbe = writeTimedCache(probe, COMPOSIO_STATUS_CACHE_TTL_MS)
+  if (invocation && probe?.available) return invocation
   return null
 }
 
@@ -1859,6 +1892,8 @@ function normalizeComposioTool(value: unknown): ComposioToolSummary | null {
 }
 
 async function readComposioConnectionsBySlug(): Promise<Map<string, ComposioConnectionSummary[]>> {
+  const cached = readTimedCache(cachedComposioConnectionsBySlug)
+  if (cached) return cached
   const payload = asRecord(await runComposioJson<Record<string, unknown>>(['connections', 'list'], 'Failed to list Composio connections'))
   const bySlug = new Map<string, ComposioConnectionSummary[]>()
   for (const [slug, rawRows] of Object.entries(payload ?? {})) {
@@ -1866,19 +1901,24 @@ async function readComposioConnectionsBySlug(): Promise<Map<string, ComposioConn
     const rows = rawRows.map(normalizeComposioConnection).filter((row): row is ComposioConnectionSummary => row !== null)
     bySlug.set(slug, rows)
   }
+  cachedComposioConnectionsBySlug = writeTimedCache(bySlug, COMPOSIO_CONNECTIONS_CACHE_TTL_MS)
   return bySlug
 }
 
-async function readComposioStatus(): Promise<ComposioStatusResponse> {
+async function readComposioStatus(force = false): Promise<ComposioStatusResponse> {
+  const cached = force ? null : readTimedCache(cachedComposioStatus)
+  if (cached) return cached
   const versionInvocation = buildComposioInvocation(['--version'])
-  const probe = versionInvocation
+  const cachedProbe = readTimedCache(cachedComposioVersionProbe)
+  const probe = cachedProbe ?? (versionInvocation
     ? probeComposioInvocation(versionInvocation)
-    : { available: false, cliVersion: '', output: '' }
+    : { available: false, cliVersion: '', output: '' })
+  if (!cachedProbe) cachedComposioVersionProbe = writeTimedCache(probe, COMPOSIO_STATUS_CACHE_TTL_MS)
   const available = probe.available
   const cliVersion = probe.cliVersion
   const userData = await readComposioUserData()
   if (!available) {
-    return {
+    const status = {
       available: false,
       authenticated: false,
       cliVersion,
@@ -1889,11 +1929,13 @@ async function readComposioStatus(): Promise<ComposioStatusResponse> {
       baseUrl: userData?.baseUrl ?? '',
       testUserId: userData?.testUserId ?? '',
     }
+    cachedComposioStatus = writeTimedCache(status, COMPOSIO_STATUS_CACHE_TTL_MS)
+    return status
   }
 
   try {
     const payload = asRecord(await runComposioJson<Record<string, unknown>>(['whoami'], 'Failed to read Composio account status'))
-    return {
+    const status = {
       available: true,
       authenticated: true,
       cliVersion,
@@ -1904,8 +1946,10 @@ async function readComposioStatus(): Promise<ComposioStatusResponse> {
       baseUrl: userData?.baseUrl || 'https://backend.composio.dev',
       testUserId: readNonEmptyString(payload?.test_user_id) || userData?.testUserId || '',
     }
+    cachedComposioStatus = writeTimedCache(status, COMPOSIO_STATUS_CACHE_TTL_MS)
+    return status
   } catch {
-    return {
+    const status = {
       available: true,
       authenticated: false,
       cliVersion,
@@ -1916,28 +1960,42 @@ async function readComposioStatus(): Promise<ComposioStatusResponse> {
       baseUrl: userData?.baseUrl || 'https://backend.composio.dev',
       testUserId: userData?.testUserId ?? '',
     }
+    cachedComposioStatus = writeTimedCache(status, COMPOSIO_STATUS_CACHE_TTL_MS)
+    return status
   }
 }
 
 async function listComposioConnectors(query: string, cursor: string | null = null, limit = 50): Promise<ComposioConnectorPage> {
-  const args = ['dev', 'toolkits', 'list', '--limit', String(COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX)]
   const trimmedQuery = query.trim()
-  if (trimmedQuery) {
-    args.push('--query', trimmedQuery)
-  }
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX, Math.floor(limit))) : 50
+  const requestedOffset = parseComposioCursor(cursor, COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX)
+  const needsFullCatalog = trimmedQuery.length > 0 || requestedOffset > 0
+  const cliLimit = needsFullCatalog ? COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX : safeLimit
+  const args = ['dev', 'toolkits', 'list', '--limit', String(cliLimit)]
+  if (trimmedQuery) args.push('--query', trimmedQuery)
+  const cachedRows = trimmedQuery
+    ? null
+    : requestedOffset <= 0
+      ? readTimedCache(cachedComposioFirstPageRows)
+      : readTimedCache(cachedComposioToolkitRows)
   const [payload, connectionsBySlug] = await Promise.all([
-    runComposioJson<unknown[]>(args, 'Failed to list Composio toolkits'),
+    cachedRows ?? runComposioJson<unknown[]>(args, 'Failed to list Composio toolkits'),
     readComposioConnectionsBySlug(),
   ])
   const allRows = payload
     .map((item) => normalizeComposioToolkit(item, connectionsBySlug))
     .filter((row): row is ComposioConnectorSummary => row !== null)
-  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX, Math.floor(limit))) : 50
-  const safeCursor = parseComposioCursor(cursor, allRows.length)
+  if (!trimmedQuery && !cachedRows) {
+    if (needsFullCatalog) cachedComposioToolkitRows = writeTimedCache(allRows, COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS)
+    else cachedComposioFirstPageRows = writeTimedCache(allRows, COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS)
+  }
+  const safeCursor = Math.min(requestedOffset, allRows.length)
+  const hasKnownMoreRows = safeCursor + safeLimit < allRows.length
+  const mayHaveMoreRows = !needsFullCatalog && allRows.length >= safeLimit
   return {
     data: allRows.slice(safeCursor, safeCursor + safeLimit),
-    nextCursor: safeCursor + safeLimit < allRows.length ? String(safeCursor + safeLimit) : null,
-    total: allRows.length,
+    nextCursor: hasKnownMoreRows || mayHaveMoreRows ? String(safeCursor + safeLimit) : null,
+    total: hasKnownMoreRows || needsFullCatalog ? allRows.length : allRows.length + (mayHaveMoreRows ? 1 : 0),
   }
 }
 
@@ -1955,11 +2013,13 @@ function parseComposioLimit(rawLimit: string | null): number {
   return Math.max(1, Math.min(COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX, parsed))
 }
 
-async function readComposioConnectorDetail(slug: string): Promise<ComposioConnectorDetail> {
+async function readComposioConnectorDetail(slug: string, force = false): Promise<ComposioConnectorDetail> {
   const normalizedSlug = slug.trim()
   if (!normalizedSlug) {
     throw new Error('Missing Composio connector slug')
   }
+  const cached = force ? null : readTimedCache(cachedComposioDetails.get(normalizedSlug) ?? null)
+  if (cached) return cached
 
   const [infoPayload, toolsPayload, connectionsPayload, userData] = await Promise.all([
     runComposioJson<Record<string, unknown>>(['dev', 'toolkits', 'info', normalizedSlug], `Failed to load Composio toolkit ${normalizedSlug}`),
@@ -1976,7 +2036,7 @@ async function readComposioConnectorDetail(slug: string): Promise<ComposioConnec
     throw new Error(`Unknown Composio connector: ${normalizedSlug}`)
   }
 
-  return {
+  const detail = {
     connector,
     connections,
     tools: Array.isArray(toolsPayload)
@@ -1984,9 +2044,12 @@ async function readComposioConnectorDetail(slug: string): Promise<ComposioConnec
       : [],
     dashboardUrl: userData?.webUrl || 'https://dashboard.composio.dev/',
   }
+  cachedComposioDetails.set(normalizedSlug, writeTimedCache(detail, COMPOSIO_CONNECTOR_DETAIL_CACHE_TTL_MS))
+  return detail
 }
 
 async function startComposioLink(slug: string): Promise<ComposioLinkResult> {
+  clearComposioCaches()
   const normalizedSlug = slug.trim()
   if (!normalizedSlug) {
     throw new Error('Missing Composio connector slug')
@@ -2003,6 +2066,7 @@ async function startComposioLink(slug: string): Promise<ComposioLinkResult> {
 }
 
 async function startComposioLogin(): Promise<ComposioLoginResult> {
+  clearComposioCaches()
   const invocation = resolveComposioInvocation(['login', '--no-browser', '-y'])
   if (!invocation) {
     throw new Error('Composio CLI is not installed')
@@ -2059,6 +2123,7 @@ async function startComposioLogin(): Promise<ComposioLoginResult> {
 }
 
 async function installComposioCli(): Promise<ComposioInstallResult> {
+  clearComposioCaches()
   const command = 'bash'
   const installScriptUrl = 'https://composio.dev/install'
   const args = ['-lc', `curl -fsSL ${installScriptUrl} | bash`]
@@ -2088,6 +2153,7 @@ async function installComposioCli(): Promise<ComposioInstallResult> {
 }
 
 async function logoutComposioCli(): Promise<ComposioLogoutResult> {
+  clearComposioCaches()
   const invocation = resolveComposioInvocation(['logout'])
   if (!invocation) {
     throw new Error('Composio CLI is not installed')
@@ -6903,7 +6969,8 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
 
       if (req.method === 'GET' && url.pathname === '/codex-api/composio/status') {
         try {
-          setJson(res, 200, await readComposioStatus())
+          const force = ['1', 'true', 'yes'].includes((url.searchParams.get('force') ?? '').toLowerCase())
+          setJson(res, 200, await readComposioStatus(force))
         } catch (error) {
           setJson(res, 500, { error: getErrorMessage(error, 'Failed to read Composio status') })
         }
@@ -6925,7 +6992,8 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
       if (req.method === 'GET' && url.pathname === '/codex-api/composio/connector') {
         try {
           const slug = url.searchParams.get('slug') ?? ''
-          setJson(res, 200, await readComposioConnectorDetail(slug))
+          const force = ['1', 'true', 'yes'].includes((url.searchParams.get('force') ?? '').toLowerCase())
+          setJson(res, 200, await readComposioConnectorDetail(slug, force))
         } catch (error) {
           setJson(res, 500, { error: getErrorMessage(error, 'Failed to load Composio connector') })
         }

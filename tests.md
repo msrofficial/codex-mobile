@@ -6216,3 +6216,38 @@ Composio panel connected connector `Try it!` starts a thread with connector docu
 #### Rollback/Cleanup
 - Delete any test threads created only for this check if desired.
 - Stop the temporary Vite server if it was only used for this check.
+
+---
+
+### Composio directory load and detail performance
+
+#### Feature/Change Name
+Composio connector directory uses paged loading and short-lived server caches for status, connector pages, and connector detail.
+
+#### Prerequisites/Setup
+1. Start a fresh verification server: `pnpm run dev --host 127.0.0.1 --port 4173`.
+2. Use a Composio-authenticated local environment for live connector timings.
+3. Keep the persistent `5173` server running if it exists; only restart the `4173` verification server.
+
+#### Steps
+1. Measure `GET /codex-api/composio/status?force=1` and then `GET /codex-api/composio/status`.
+2. Measure `GET /codex-api/composio/connectors?limit=50` twice.
+3. Measure `GET /codex-api/composio/connectors?limit=50&cursor=50` and then another cursor page while the cache is warm.
+4. Measure `GET /codex-api/composio/connector?slug=reddit&force=1` and then `GET /codex-api/composio/connector?slug=reddit`.
+5. Open `http://127.0.0.1:4173/#/skills?tab=composio` in light theme and confirm the initial card list renders from the first page.
+6. Click `Load more` and confirm additional connectors appear while existing rows remain stable.
+7. Search `reddit` or `instagram` and confirm ranking still prefers direct slug/name matches.
+8. Open one connector detail twice and confirm the second open is visibly faster while still showing tool descriptions and connection rows.
+9. Repeat the visible Composio tab checks in dark theme.
+10. Run `PROFILE_BASE_URL=http://127.0.0.1:4173 PROFILE_WAIT_MS=7000 pnpm run profile:browser`.
+
+#### Expected Results
+- The initial connector endpoint returns 50 rows, not the full 1000-row catalog.
+- Repeated status, first-page connector list, cursor-page connector list, and connector detail calls return from cache within the configured TTL.
+- `Load more` fetches additional live connector pages instead of only revealing unhydrated preview rows.
+- Connector detail can still be force-refreshed during connect polling.
+- Browser startup profile does not include Composio API fanout before the user opens or triggers Composio UI.
+- Light and dark themes render the paged connector list, detail modal, and loading states clearly.
+
+#### Rollback/Cleanup
+- Stop the temporary Vite server if it was only used for this check.

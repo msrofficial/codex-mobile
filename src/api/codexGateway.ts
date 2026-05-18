@@ -2312,8 +2312,8 @@ export async function startDirectoryMcpLogin(name: string): Promise<DirectoryMcp
   }
 }
 
-export async function getDirectoryComposioStatus(): Promise<DirectoryComposioStatus> {
-  const response = await fetch('/codex-api/composio/status')
+export async function getDirectoryComposioStatus(force = false): Promise<DirectoryComposioStatus> {
+  const response = await fetch(`/codex-api/composio/status${force ? '?force=1' : ''}`)
   if (!response.ok) {
     throw new Error(`Failed to load Composio status (${response.status})`)
   }
@@ -2342,8 +2342,10 @@ export async function listDirectoryComposioConnectors(
   }
 }
 
-export async function readDirectoryComposioConnector(slug: string): Promise<DirectoryComposioConnectorDetail> {
-  const response = await fetch(`/codex-api/composio/connector?slug=${encodeURIComponent(slug)}`)
+export async function readDirectoryComposioConnector(slug: string, force = false): Promise<DirectoryComposioConnectorDetail> {
+  const params = new URLSearchParams({ slug })
+  if (force) params.set('force', '1')
+  const response = await fetch(`/codex-api/composio/connector?${params.toString()}`)
   if (!response.ok) {
     throw new Error(`Failed to load Composio connector (${response.status})`)
   }

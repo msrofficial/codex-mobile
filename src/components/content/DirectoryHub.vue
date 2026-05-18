@@ -850,6 +850,7 @@ const plugins = ref<DirectoryPluginSummary[]>([])
 const apps = ref<DirectoryAppInfo[]>([])
 const composioStatus = ref<DirectoryComposioStatus | null>(null)
 const composioConnectors = ref<DirectoryComposioConnector[]>([])
+const composioNextCursor = ref<string | null>(null)
 const composioTotal = ref(0)
 const composioVisibleLimit = ref(COMPOSIO_PAGE_LIMIT)
 const mcpServers = ref<DirectoryMcpServerStatus[]>([])
@@ -945,7 +946,9 @@ const filteredComposioConnectors = computed(() =>
 )
 const visibleComposioConnectors = computed(() => filteredComposioConnectors.value.slice(0, composioVisibleLimit.value))
 const visibleMcpServers = computed(() => sortMcpServers(mcpServers.value, 'popular'))
-const hasMoreComposioConnectors = computed(() => visibleComposioConnectors.value.length < filteredComposioConnectors.value.length)
+const hasMoreComposioConnectors = computed(() =>
+  visibleComposioConnectors.value.length < filteredComposioConnectors.value.length || composioNextCursor.value !== null,
+)
 const mcpStatusByName = computed(() => new Map(mcpServers.value.map((server) => [server.name, server])))
 const composioWorkspaceSummary = computed(() => {
   const status = composioStatus.value
@@ -1425,20 +1428,31 @@ async function loadComposio(): Promise<void> {
   isLoadingComposio.value = true
   composioError.value = ''
   try {
-    const status = await getDirectoryComposioStatus()
+    const statusPromise = getDirectoryComposioStatus()
+    const pagePromise = listDirectoryComposioConnectors('', null, COMPOSIO_PAGE_LIMIT)
+      .then((page) => ({ page, error: null as Error | null }))
+      .catch((error: unknown) => ({
+        page: null,
+        error: error instanceof Error ? error : new Error('Failed to load Composio connectors'),
+      }))
+    const status = await statusPromise
     composioStatus.value = status
     resetComposioVisibleLimit()
     if (!status.available || !status.authenticated) {
       composioConnectors.value = HARDCODED_COMPOSIO_CONNECTORS
+      composioNextCursor.value = null
       composioTotal.value = HARDCODED_COMPOSIO_CONNECTORS.length
     } else {
-      const page = await listDirectoryComposioConnectors('', null, 1000)
+      const { page, error } = await pagePromise
+      if (error || !page) throw error ?? new Error('Failed to load Composio connectors')
       composioConnectors.value = mergeComposioConnectors(HARDCODED_COMPOSIO_CONNECTORS, page.data)
-      composioTotal.value = composioConnectors.value.length
+      composioNextCursor.value = page.nextCursor
+      composioTotal.value = Math.max(page.total, composioConnectors.value.length)
     }
   } catch (error) {
     composioError.value = error instanceof Error ? error.message : 'Failed to load Composio connectors'
     composioConnectors.value = HARDCODED_COMPOSIO_CONNECTORS
+    composioNextCursor.value = null
     composioTotal.value = HARDCODED_COMPOSIO_CONNECTORS.length
   } finally {
     isLoadingComposio.value = false
@@ -1448,7 +1462,23 @@ async function loadComposio(): Promise<void> {
 
 async function loadMoreComposio(): Promise<void> {
   if (!hasMoreComposioConnectors.value) return
-  composioVisibleLimit.value += COMPOSIO_PAGE_LIMIT
+  if (!composioNextCursor.value) {
+    composioVisibleLimit.value += COMPOSIO_PAGE_LIMIT
+    return
+  }
+  if (!composioStatus.value?.available || !composioStatus.value.authenticated) return
+  isLoadingComposio.value = true
+  try {
+    const page = await listDirectoryComposioConnectors('', composioNextCursor.value, COMPOSIO_PAGE_LIMIT)
+    composioConnectors.value = mergeComposioConnectors(composioConnectors.value, page.data)
+    composioNextCursor.value = page.nextCursor
+    composioTotal.value = Math.max(page.total, composioConnectors.value.length)
+    composioVisibleLimit.value += COMPOSIO_PAGE_LIMIT
+  } catch (error) {
+    composioError.value = error instanceof Error ? error.message : 'Failed to load more Composio connectors'
+  } finally {
+    isLoadingComposio.value = false
+  }
 }
 
 async function loadMcps(): Promise<void> {
@@ -1667,7 +1697,7 @@ async function logoutComposioCli(): Promise<void> {
 async function waitForComposioLogin(): Promise<void> {
   const deadline = Date.now() + COMPOSIO_AUTH_POLL_TIMEOUT_MS
   while (Date.now() < deadline) {
-    const status = await getDirectoryComposioStatus()
+    const status = await getDirectoryComposioStatus(true)
     composioStatus.value = status
     if (status.available && status.authenticated) {
       await loadComposio()
@@ -1682,12 +1712,18 @@ async function waitForComposioLogin(): Promise<void> {
 async function waitForComposioConnectorConnection(slug: string): Promise<void> {
   const deadline = Date.now() + COMPOSIO_AUTH_POLL_TIMEOUT_MS
   while (Date.now() < deadline) {
-    await loadComposio()
-    const connector = composioConnectors.value.find((row) => row.slug === slug)
-    if (connector && (connector.activeCount > 0 || connector.isNoAuth)) {
+    let connector = composioConnectors.value.find((row) => row.slug === slug)
+    try {
+      const detail = await readDirectoryComposioConnector(slug, true)
+      connector = detail.connector
       if (isComposioDetailOpen.value && selectedComposioDetail.value?.connector.slug === slug) {
-        await openComposioDetail(slug)
+        selectedComposioDetail.value = detail
       }
+    } catch {
+      // Keep polling; the connector can fail until the external auth finishes.
+    }
+    if (connector && (connector.activeCount > 0 || connector.isNoAuth)) {
+      await loadComposio()
       return
     }
     await sleep(COMPOSIO_AUTH_POLL_INTERVAL_MS)
