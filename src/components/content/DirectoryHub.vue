@@ -1601,6 +1601,11 @@ function closeComposioDetail(): void {
   isComposioDetailOpen.value = false
 }
 
+function updateComposioConnectorRow(connector: DirectoryComposioConnector): void {
+  composioConnectors.value = mergeComposioConnectors(composioConnectors.value, [connector])
+  composioTotal.value = Math.max(composioTotal.value, composioConnectors.value.length)
+}
+
 async function openRouteComposioConnector(): Promise<void> {
   if (activeTab.value !== 'composio') return
   const slug = composioConnectorSlugFromRoute()
@@ -1716,6 +1721,7 @@ async function waitForComposioConnectorConnection(slug: string): Promise<void> {
     try {
       const detail = await readDirectoryComposioConnector(slug, true)
       connector = detail.connector
+      updateComposioConnectorRow(detail.connector)
       if (isComposioDetailOpen.value && selectedComposioDetail.value?.connector.slug === slug) {
         selectedComposioDetail.value = detail
       }
@@ -1724,6 +1730,7 @@ async function waitForComposioConnectorConnection(slug: string): Promise<void> {
     }
     if (connector && (connector.activeCount > 0 || connector.isNoAuth)) {
       await loadComposio()
+      updateComposioConnectorRow(connector)
       return
     }
     await sleep(COMPOSIO_AUTH_POLL_INTERVAL_MS)

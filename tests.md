@@ -6240,12 +6240,14 @@ Composio connector directory uses paged loading and short-lived server caches fo
 8. Open one connector detail twice and confirm the second open is visibly faster while still showing tool descriptions and connection rows.
 9. Repeat the visible Composio tab checks in dark theme.
 10. Run `PROFILE_BASE_URL=http://127.0.0.1:4173 PROFILE_WAIT_MS=7000 pnpm run profile:browser`.
+11. Connect a connector that is visible through search but not necessarily present in the first live page, such as YouTube, and confirm the waiting state stops and the same visible card changes from `Connect` to connected/manage state without refreshing the browser.
 
 #### Expected Results
 - The initial connector endpoint returns 50 rows, not the full 1000-row catalog.
 - Repeated status, first-page connector list, cursor-page connector list, and connector detail calls return from cache within the configured TTL; connector list/detail repeats should stay warm long enough for normal manual re-open checks.
 - `Load more` fetches additional live connector pages instead of only revealing unhydrated preview rows.
 - Connector detail can still be force-refreshed during connect polling.
+- Connect polling updates the visible connector row from the fresh detail response, even when the connected connector is outside the currently loaded connector page.
 - Browser startup profile does not include Composio API fanout before the user opens or triggers Composio UI.
 - Light and dark themes render the paged connector list, detail modal, and loading states clearly.
 
