@@ -6243,7 +6243,7 @@ Composio connector directory uses paged loading and short-lived server caches fo
 
 #### Expected Results
 - The initial connector endpoint returns 50 rows, not the full 1000-row catalog.
-- Repeated status, first-page connector list, cursor-page connector list, and connector detail calls return from cache within the configured TTL.
+- Repeated status, first-page connector list, cursor-page connector list, and connector detail calls return from cache within the configured TTL; connector list/detail repeats should stay warm long enough for normal manual re-open checks.
 - `Load more` fetches additional live connector pages instead of only revealing unhydrated preview rows.
 - Connector detail can still be force-refreshed during connect polling.
 - Browser startup profile does not include Composio API fanout before the user opens or triggers Composio UI.

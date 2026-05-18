@@ -229,10 +229,10 @@ type ComposioConnectorPage = {
 }
 
 const COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX = 1000
-const COMPOSIO_STATUS_CACHE_TTL_MS = 10_000
-const COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS = 60_000
-const COMPOSIO_CONNECTIONS_CACHE_TTL_MS = 10_000
-const COMPOSIO_CONNECTOR_DETAIL_CACHE_TTL_MS = 30_000
+const COMPOSIO_STATUS_CACHE_TTL_MS = 60_000
+const COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS = 5 * 60_000
+const COMPOSIO_CONNECTIONS_CACHE_TTL_MS = 60_000
+const COMPOSIO_CONNECTOR_DETAIL_CACHE_TTL_MS = 5 * 60_000
 
 const PROVIDER_MODELS_FETCH_TIMEOUT_MS = 5_000
 
@@ -1973,13 +1973,20 @@ async function listComposioConnectors(query: string, cursor: string | null = nul
   const cliLimit = needsFullCatalog ? COMPOSIO_CONNECTORS_PAGE_LIMIT_MAX : safeLimit
   const args = ['dev', 'toolkits', 'list', '--limit', String(cliLimit)]
   if (trimmedQuery) args.push('--query', trimmedQuery)
+  const cachedFirstPageRows = readTimedCache(cachedComposioFirstPageRows)
+  const cachedFullCatalogRows = readTimedCache(cachedComposioToolkitRows)
   const cachedRows = trimmedQuery
     ? null
     : requestedOffset <= 0
-      ? readTimedCache(cachedComposioFirstPageRows)
-      : readTimedCache(cachedComposioToolkitRows)
+      ? cachedFirstPageRows && cachedFirstPageRows.length >= safeLimit
+        ? cachedFirstPageRows
+        : null
+      : cachedFullCatalogRows
+  if (cachedRows) {
+    return buildComposioConnectorPage(cachedRows, requestedOffset, safeLimit, needsFullCatalog)
+  }
   const [payload, connectionsBySlug] = await Promise.all([
-    cachedRows ?? runComposioJson<unknown[]>(args, 'Failed to list Composio toolkits'),
+    runComposioJson<unknown[]>(args, 'Failed to list Composio toolkits'),
     readComposioConnectionsBySlug(),
   ])
   const allRows = payload
@@ -1989,14 +1996,7 @@ async function listComposioConnectors(query: string, cursor: string | null = nul
     if (needsFullCatalog) cachedComposioToolkitRows = writeTimedCache(allRows, COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS)
     else cachedComposioFirstPageRows = writeTimedCache(allRows, COMPOSIO_CONNECTOR_LIST_CACHE_TTL_MS)
   }
-  const safeCursor = Math.min(requestedOffset, allRows.length)
-  const hasKnownMoreRows = safeCursor + safeLimit < allRows.length
-  const mayHaveMoreRows = !needsFullCatalog && allRows.length >= safeLimit
-  return {
-    data: allRows.slice(safeCursor, safeCursor + safeLimit),
-    nextCursor: hasKnownMoreRows || mayHaveMoreRows ? String(safeCursor + safeLimit) : null,
-    total: hasKnownMoreRows || needsFullCatalog ? allRows.length : allRows.length + (mayHaveMoreRows ? 1 : 0),
-  }
+  return buildComposioConnectorPage(allRows, requestedOffset, safeLimit, needsFullCatalog)
 }
 
 function parseComposioCursor(cursor: string | null | undefined, maxLength: number): number {
@@ -2005,6 +2005,22 @@ function parseComposioCursor(cursor: string | null | undefined, maxLength: numbe
   if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) return 0
   if (parsed >= maxLength) return maxLength
   return parsed
+}
+
+function buildComposioConnectorPage(
+  allRows: ComposioConnectorSummary[],
+  requestedOffset: number,
+  safeLimit: number,
+  needsFullCatalog: boolean,
+): ComposioConnectorPage {
+  const safeCursor = Math.min(requestedOffset, allRows.length)
+  const hasKnownMoreRows = safeCursor + safeLimit < allRows.length
+  const mayHaveMoreRows = !needsFullCatalog && allRows.length >= safeLimit
+  return {
+    data: allRows.slice(safeCursor, safeCursor + safeLimit),
+    nextCursor: hasKnownMoreRows || mayHaveMoreRows ? String(safeCursor + safeLimit) : null,
+    total: hasKnownMoreRows || needsFullCatalog ? allRows.length : allRows.length + (mayHaveMoreRows ? 1 : 0),
+  }
 }
 
 function parseComposioLimit(rawLimit: string | null): number {
