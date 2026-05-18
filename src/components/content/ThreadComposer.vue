@@ -1763,13 +1763,25 @@ async function refreshComposioSuggestions(force = false): Promise<void> {
 }
 
 async function applyComposioSuggestion(connector: DirectoryComposioConnector): Promise<void> {
-  if (connector.activeCount <= 0 && !connector.isNoAuth) {
+  let resolvedConnector = connector
+  let resolvedDetail: DirectoryComposioConnectorDetail | null = null
+  if (connector.activeCount <= 0 && !connector.isNoAuth && composioStatus.value?.available && composioStatus.value.authenticated) {
+    try {
+      resolvedDetail = await readDirectoryComposioConnector(connector.slug, true)
+      resolvedConnector = resolvedDetail.connector
+      composioConnectors.value = mergeComposioConnectors(composioConnectors.value, [resolvedConnector])
+    } catch {
+      resolvedDetail = null
+    }
+  }
+
+  if (resolvedConnector.activeCount <= 0 && !resolvedConnector.isNoAuth) {
     emit('open-composio-connector', connector.slug)
     void nextTick(() => inputRef.value?.focus())
     return
   }
 
-  const fileName = composioConnectorDocumentFileName(connector)
+  const fileName = composioConnectorDocumentFileName(resolvedConnector)
   if (fileAttachments.value.some((attachment) => attachment.label === fileName && attachment.source === 'composio-doc')) {
     void nextTick(() => inputRef.value?.focus())
     return
@@ -1779,13 +1791,13 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
   const sessionToken = attachmentSessionToken
   if (!beginAttachmentWork(sessionToken)) return
   try {
-    let detail: DirectoryComposioConnectorDetail | null = null
+    let detail = resolvedDetail
     try {
-      detail = await readDirectoryComposioConnector(connector.slug)
+      detail = detail ?? await readDirectoryComposioConnector(resolvedConnector.slug)
     } catch {
       detail = null
     }
-    const document = buildComposioConnectorDocument(connector, detail)
+    const document = buildComposioConnectorDocument(resolvedConnector, detail)
     const file = new File([document], fileName, {
       type: 'text/markdown',
       lastModified: Date.now(),
