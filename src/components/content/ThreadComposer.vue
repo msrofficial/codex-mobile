@@ -305,8 +305,6 @@
               :disabled="isInteractionDisabled"
               @mousedown.prevent
               @click="applyComposioSuggestion(connector)"
-              @keydown.enter.prevent="applyComposioSuggestion(connector)"
-              @keydown.space.prevent="applyComposioSuggestion(connector)"
             >
               <span class="thread-composer-composio-suggestion-title">
                 {{ connector.name }}
@@ -1747,6 +1745,7 @@ async function reloadPrompts(): Promise<void> {
 }
 
 async function refreshComposioSuggestions(force = false): Promise<void> {
+  if (props.composioSuggestionsEnabled === false) return
   const now = Date.now()
   if (!force && composioLoadStartedAt > 0 && now - composioLoadStartedAt < COMPOSIO_REFRESH_INTERVAL_MS) return
   composioLoadStartedAt = now
@@ -2012,7 +2011,7 @@ watch([draft, selectedImages, fileAttachments, selectedSkills], () => {
 watch(draft, () => {
   dismissedComposioSuggestionSlug.value = null
   queueComposerOverflowMeasurement()
-  if (draft.value.trim().length >= 2) {
+  if (props.composioSuggestionsEnabled !== false && draft.value.trim().length >= 2) {
     void refreshComposioSuggestions()
   }
 })

@@ -6242,6 +6242,8 @@ Composio connector directory uses paged loading and short-lived server caches fo
 10. Run `PROFILE_BASE_URL=http://127.0.0.1:4173 PROFILE_WAIT_MS=7000 pnpm run profile:browser`.
 11. Connect a connector that is visible through search but not necessarily present in the first live page, such as YouTube, and confirm the waiting state stops and the same visible card changes from `Connect` to connected/manage state without refreshing the browser.
 12. After connecting YouTube, type `youtube` in the composer and click the `YouTube` suggestion; confirm the suggestion disappears immediately, then attaches `composio-youtube.md` without changing composer text and without redirecting to the Composio panel.
+13. Disable connector suggestions in settings, type a connector name, and confirm no Composio suggestion API requests are made while typing.
+14. Focus a visible connector suggestion and activate it with Enter or Space; confirm it performs one attachment/open action, not duplicate uploads.
 
 #### Expected Results
 - The initial connector endpoint returns 50 rows, not the full 1000-row catalog.
@@ -6251,6 +6253,8 @@ Composio connector directory uses paged loading and short-lived server caches fo
 - Connect polling updates the visible connector row from the fresh detail response, even when the connected connector is outside the currently loaded connector page.
 - Composer suggestion clicks force-check stale disconnected rows before deciding to open the Composio panel, so newly connected connectors attach documentation immediately.
 - The clicked composer suggestion hides immediately on click so there is visible feedback while detail refresh/upload work is in progress.
+- Disabling connector suggestions prevents both visible suggestions and background Composio suggestion refresh calls.
+- Native suggestion buttons rely on their built-in keyboard click behavior and do not run duplicate Enter/Space handlers.
 - Browser startup profile does not include Composio API fanout before the user opens or triggers Composio UI.
 - Light and dark themes render the paged connector list, detail modal, and loading states clearly.
 

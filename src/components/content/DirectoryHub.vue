@@ -1608,11 +1608,12 @@ function updateComposioConnectorRow(connector: DirectoryComposioConnector): void
 
 async function openRouteComposioConnector(): Promise<void> {
   if (activeTab.value !== 'composio') return
+  if (isLoadingComposio.value) return
   const slug = composioConnectorSlugFromRoute()
   if (!slug || lastRouteComposioConnectorSlug.value === slug) return
-  lastRouteComposioConnectorSlug.value = slug
   composioSearchQuery.value = slug
   await openComposioDetail(slug)
+  lastRouteComposioConnectorSlug.value = slug
 }
 
 async function startComposioConnect(connector: DirectoryComposioConnector): Promise<void> {
