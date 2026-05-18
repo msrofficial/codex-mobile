@@ -310,7 +310,6 @@
             >
               <span class="thread-composer-composio-suggestion-title">
                 Use {{ connector.name }}
-                <span v-if="connector.activeCount > 0">connected</span>
               </span>
               <span
                 class="thread-composer-composio-suggestion-meta"
