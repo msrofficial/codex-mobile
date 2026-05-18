@@ -4643,6 +4643,7 @@ export function useDesktopState() {
 
   async function selectThread(threadId: string): Promise<SelectThreadResult> {
     setSelectedThreadId(threadId)
+    if (!threadId.trim()) return 'ok'
 
     try {
       await loadMessages(threadId)
