@@ -6169,7 +6169,9 @@ Composer Composio suggestion selection attaches connector documentation instead 
 14. Turn `Connector suggestions` back on and confirm `reddit ads butt` shows Reddit Ads again.
 15. For an unconnected connector, click its suggestion and confirm the app opens the Composio directory tab with that connector detail panel visible for install/login/connect.
 16. Confirm the single suggestion chip appears in the bottom controls row after Model, Skills, and Thinking controls, not before them and not over the text area.
-17. Repeat in dark theme and confirm the settings toggle, suggestion chips, directory panel, and file chip remain readable.
+17. Attach or upload an unrelated file whose visible label matches the generated connector doc name, such as `composio-reddit.md`, then click connected Reddit and confirm the connector doc still attaches.
+18. Click the same connected connector again and confirm a second generated connector doc is not attached.
+19. Repeat in dark theme and confirm the settings toggle, suggestion chips, directory panel, and file chip remain readable.
 
 #### Expected Results
 - Picking a Composio suggestion attaches a markdown file containing the connector instruction, description, metadata, available tools when detail fetch succeeds, and connection notes.
@@ -6180,8 +6182,8 @@ Composer Composio suggestion selection attaches connector documentation instead 
 - The composer text remains unchanged after a connector file is attached or the connector panel opens.
 - Picking a suggestion does not automatically add the `composio-cli` skill chip.
 - Unconnected connectors open the Composio connector detail panel instead of attaching a docs file immediately.
-- Re-selecting the same connector does not attach duplicate connector files.
-- The flow still works when Composio is logged out by falling back to catalog documentation.
+- Re-selecting the same connector does not attach duplicate connector files, but unrelated user files with the same label do not suppress the connector documentation.
+- The logged-out flow still shows catalog suggestions, and selecting a connector opens the Composio panel instead of mutating the composer.
 - Light and dark themes both render the controls-row suggestion after Model, Skills, and Thinking plus attachment chips clearly.
 
 #### Rollback/Cleanup

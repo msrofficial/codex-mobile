@@ -496,7 +496,13 @@ const props = defineProps<{
   composioSuggestionsEnabled?: boolean
 }>()
 
-export type FileAttachment = { label: string; path: string; fsPath: string; source?: 'composio-doc' }
+export type FileAttachment = {
+  label: string
+  path: string
+  fsPath: string
+  source?: 'composio-doc'
+  sourceId?: string
+}
 
 export type ComposerDraftPayload = {
   text: string
@@ -1290,12 +1296,12 @@ function getFolderUploadPercent(group: FolderUploadGroup): number {
   return Math.round((group.processed / group.total) * 100)
 }
 
-function addFileAttachment(filePath: string, customLabel?: string, source?: FileAttachment['source']): void {
+function addFileAttachment(filePath: string, customLabel?: string, source?: FileAttachment['source'], sourceId?: string): void {
   const normalized = filePath.replace(/\\/g, '/')
   if (fileAttachments.value.some((a) => a.fsPath === normalized)) return
   const parts = normalized.split('/').filter(Boolean)
   const label = customLabel?.trim() || parts[parts.length - 1] || normalized
-  fileAttachments.value = [...fileAttachments.value, { label, path: normalized, fsPath: normalized, source }]
+  fileAttachments.value = [...fileAttachments.value, { label, path: normalized, fsPath: normalized, source, sourceId }]
 }
 
 function isImageFile(file: File): boolean {
@@ -1784,7 +1790,8 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
   }
 
   const fileName = composioConnectorDocumentFileName(resolvedConnector)
-  if (fileAttachments.value.some((attachment) => attachment.label === fileName && attachment.source === 'composio-doc')) {
+  const composioSourceId = resolvedConnector.slug
+  if (fileAttachments.value.some((attachment) => attachment.source === 'composio-doc' && attachment.sourceId === composioSourceId)) {
     void nextTick(() => inputRef.value?.focus())
     return
   }
@@ -1810,7 +1817,7 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
       recordAttachmentBatchResult('failure')
       return
     }
-    addFileAttachment(serverPath, fileName, 'composio-doc')
+    addFileAttachment(serverPath, fileName, 'composio-doc', composioSourceId)
     recordAttachmentBatchResult('success')
   } catch {
     if (sessionToken === attachmentSessionToken) {
