@@ -52,6 +52,26 @@ cloudflared tunnel --url http://localhost:<port>
 It prints the tunnel URL, terminal QR code, and password together in startup output.  
 Use `--no-tunnel` to disable this behavior.
 
+`codexapp` supports multiple backend providers from the in-app settings, including Codex, OpenRouter, OpenCode Zen, and custom OpenAI-compatible endpoints.
+
+OpenCode Zen model support is loaded from `https://opencode.ai/zen/v1/models`. Current Zen model families include:
+
+- Claude Opus
+- Claude Sonnet
+- Claude Haiku
+- Gemini Flash
+- Gemini Pro
+- GPT
+- GPT Codex
+- Grok Build
+- GLM
+- MiniMax
+- Kimi
+- Qwen Plus
+- Big Pickle
+- DeepSeek Flash Free
+- Nemotron Super Free
+
 If you are using a provider or AI gateway that is already authenticated and do not want `codexapp` to force `codex login` during startup, use:
 
 ```bash
@@ -133,6 +153,7 @@ Notes:
 - 🌐 LAN-friendly access from other devices on the same network
 - 🧪 Remote/headless-friendly setup for server-based Codex usage
 - 🔌 Works with reverse proxies and tunneling setups
+- 🔁 Multiple provider support for Codex, OpenRouter, OpenCode Zen, and custom OpenAI-compatible endpoints
 - ⚡ No global install required for quick experimentation
 - 🎙️ Built-in hold-to-dictate voice input with transcription to composer draft
 - 🤖 Optional Telegram bot bridge: send messages to bot, forward into mapped thread, send assistant reply back to Telegram
