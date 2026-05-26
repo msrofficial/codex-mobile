@@ -64,9 +64,7 @@ function findLatestExactAliasMatch(connector: DirectoryComposioConnector, fullQu
   return latest
 }
 
-function scoreComposioSuggestion(connector: DirectoryComposioConnector, fullQuery: string): number {
-  const latestMatch = findLatestExactAliasMatch(connector, fullQuery)
-  if (!latestMatch) return 0
+function scoreComposioSuggestion(connector: DirectoryComposioConnector): number {
   let score = 0
   if (connector.activeCount > 0) score += 500
   else if (connector.totalConnections > 0) score += 250
@@ -82,7 +80,7 @@ export function rankComposioSuggestions(rows: DirectoryComposioConnector[], quer
     .map((connector) => ({
       connector,
       match: findLatestExactAliasMatch(connector, fullQuery),
-      score: scoreComposioSuggestion(connector, fullQuery),
+      score: scoreComposioSuggestion(connector),
     }))
     .filter((row): row is { connector: DirectoryComposioConnector; match: ComposioMentionMatch; score: number } => row.match !== null)
   const latestIndex = Math.max(...matched.map((row) => row.match.index), -1)
