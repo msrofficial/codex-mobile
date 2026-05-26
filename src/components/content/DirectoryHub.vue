@@ -744,6 +744,7 @@ import { HARDCODED_COMPOSIO_CONNECTORS } from './composioConnectorCatalog'
 import {
   buildComposioConnectorDocument,
   composioConnectorDocumentFileName,
+  mergeComposioConnectors,
 } from './composioComposerSuggestions'
 import { sortComposioConnectors, type DirectorySortMode } from './directoryHubUtils'
 import SkillsHub from './SkillsHub.vue'
@@ -1235,26 +1236,13 @@ function composioConnectionStatusClass(status: string): string {
   return 'is-muted'
 }
 
-function mergeComposioConnectors(
-  catalog: DirectoryComposioConnector[],
-  liveRows: DirectoryComposioConnector[],
-): DirectoryComposioConnector[] {
-  const bySlug = new Map(liveRows.map((row) => [row.slug, row]))
-  const catalogSlugs = new Set(catalog.map((row) => row.slug))
-  const merged = catalog.map((row) => {
-    const live = bySlug.get(row.slug)
-    return live ? { ...row, ...live } : row
-  })
-  return [
-    ...merged,
-    ...liveRows.filter((row) => !catalogSlugs.has(row.slug)),
-  ]
-}
-
-function buildLocalComposioDetail(connector: DirectoryComposioConnector): DirectoryComposioConnectorDetail {
+function buildLocalComposioDetail(
+  connector: DirectoryComposioConnector,
+  connections: DirectoryComposioConnection[] = [],
+): DirectoryComposioConnectorDetail {
   return {
     connector,
-    connections: [],
+    connections,
     tools: [],
     dashboardUrl: composioStatus.value?.webUrl || DEFAULT_COMPOSIO_DASHBOARD_URL,
   }
@@ -1314,12 +1302,7 @@ async function buildComposioTryAttachment(
   try {
     detail = await readDirectoryComposioConnector(connector.slug)
   } catch {
-    detail = {
-      connector,
-      connections,
-      tools: [],
-      dashboardUrl: composioStatus.value?.webUrl || DEFAULT_COMPOSIO_DASHBOARD_URL,
-    }
+    detail = buildLocalComposioDetail(connector, connections)
   }
 
   const fileName = composioConnectorDocumentFileName(connector)
