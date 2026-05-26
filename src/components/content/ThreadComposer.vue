@@ -443,13 +443,11 @@ import {
   type DirectoryComposioConnectorDetail,
   type DirectoryComposioStatus,
 } from '../../api/codexGateway'
-import { HARDCODED_COMPOSIO_CONNECTORS } from './composioConnectorCatalog'
 import {
-  buildComposioConnectorDocument,
-  composioConnectorDocumentFileName,
   getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
+  uploadComposioConnectorDocument,
 } from './composioComposerSuggestions'
 import IconTablerArrowUp from '../icons/IconTablerArrowUp.vue'
 import IconTablerBolt from '../icons/IconTablerBolt.vue'
@@ -570,7 +568,8 @@ const savedPrompts = ref<ComposerPromptInfo[]>([])
 const fileAttachments = ref<FileAttachment[]>([])
 const folderUploadGroups = ref<FolderUploadGroup[]>([])
 const composioStatus = ref<DirectoryComposioStatus | null>(null)
-const composioConnectors = ref<DirectoryComposioConnector[]>(HARDCODED_COMPOSIO_CONNECTORS)
+const composioCatalog = ref<DirectoryComposioConnector[]>([])
+const composioConnectors = ref<DirectoryComposioConnector[]>([])
 const dismissedComposioSuggestionSlug = ref<string | null>(null)
 
 const dictationFeedback = ref('')
@@ -633,6 +632,7 @@ let isHoldPressActive = false
 let dragDepth = 0
 let attachmentSessionToken = 0
 let composioLoadStartedAt = 0
+let composioCatalogLoadPromise: Promise<DirectoryComposioConnector[]> | null = null
 const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 const DRAFT_STORAGE_PREFIX = 'codex-web-local.thread-draft.v1.'
 let lastActiveThreadId = ''
@@ -664,7 +664,7 @@ const visibleComposioSuggestions = computed(() => {
   if (isFileMentionOpen.value) return []
   const query = getComposioSuggestionQuery(draft.value)
   if (query.length < 2) return []
-  const rows = composioConnectors.value.length > 0 ? composioConnectors.value : HARDCODED_COMPOSIO_CONNECTORS
+  const rows = composioConnectors.value.length > 0 ? composioConnectors.value : composioCatalog.value
   return rankComposioSuggestions(rows, query)
     .slice(0, COMPOSIO_SUGGESTION_LIMIT)
     .filter((connector) => connector.slug !== dismissedComposioSuggestionSlug.value)
@@ -1750,8 +1750,17 @@ async function reloadPrompts(): Promise<void> {
   savedPrompts.value = await getComposerPrompts()
 }
 
+async function ensureComposioCatalogLoaded(): Promise<DirectoryComposioConnector[]> {
+  if (composioCatalog.value.length > 0) return composioCatalog.value
+  composioCatalogLoadPromise ??= import('./composioConnectorCatalog').then((module) => module.HARDCODED_COMPOSIO_CONNECTORS)
+  composioCatalog.value = await composioCatalogLoadPromise
+  if (composioConnectors.value.length === 0) composioConnectors.value = composioCatalog.value
+  return composioCatalog.value
+}
+
 async function refreshComposioSuggestions(): Promise<void> {
   if (props.composioSuggestionsEnabled === false) return
+  const catalog = await ensureComposioCatalogLoaded()
   const now = Date.now()
   if (composioLoadStartedAt > 0 && now - composioLoadStartedAt < COMPOSIO_REFRESH_INTERVAL_MS) return
   composioLoadStartedAt = now
@@ -1759,13 +1768,13 @@ async function refreshComposioSuggestions(): Promise<void> {
     const status = await getDirectoryComposioStatus()
     composioStatus.value = status
     if (!status.available || !status.authenticated) {
-      composioConnectors.value = HARDCODED_COMPOSIO_CONNECTORS
+      composioConnectors.value = catalog
       return
     }
     const page = await listDirectoryComposioConnectors('', null, 50)
-    composioConnectors.value = mergeComposioConnectors(HARDCODED_COMPOSIO_CONNECTORS, page.data)
+    composioConnectors.value = mergeComposioConnectors(catalog, page.data)
   } catch {
-    composioConnectors.value = HARDCODED_COMPOSIO_CONNECTORS
+    composioConnectors.value = catalog
   }
 }
 
@@ -1789,7 +1798,6 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
     return
   }
 
-  const fileName = composioConnectorDocumentFileName(resolvedConnector)
   const composioSourceId = resolvedConnector.slug
   if (fileAttachments.value.some((attachment) => attachment.source === 'composio-doc' && attachment.sourceId === composioSourceId)) {
     void nextTick(() => inputRef.value?.focus())
@@ -1806,18 +1814,13 @@ async function applyComposioSuggestion(connector: DirectoryComposioConnector): P
     } catch {
       detail = null
     }
-    const document = buildComposioConnectorDocument(resolvedConnector, detail)
-    const file = new File([document], fileName, {
-      type: 'text/markdown',
-      lastModified: Date.now(),
-    })
-    const serverPath = await uploadFile(file)
+    const attachment = await uploadComposioConnectorDocument(resolvedConnector, detail, uploadFile)
     if (sessionToken !== attachmentSessionToken) return
-    if (!serverPath) {
+    if (!attachment) {
       recordAttachmentBatchResult('failure')
       return
     }
-    addFileAttachment(serverPath, fileName, 'composio-doc', composioSourceId)
+    addFileAttachment(attachment.fsPath, attachment.label, 'composio-doc', composioSourceId)
     recordAttachmentBatchResult('success')
   } catch {
     if (sessionToken === attachmentSessionToken) {
@@ -2019,8 +2022,13 @@ watch(draft, () => {
   dismissedComposioSuggestionSlug.value = null
   queueComposerOverflowMeasurement()
   const query = getComposioSuggestionQuery(draft.value)
-  const hasLocalComposioMatch = rankComposioSuggestions(HARDCODED_COMPOSIO_CONNECTORS, query).length > 0
-  if (props.composioSuggestionsEnabled !== false && hasLocalComposioMatch) {
+  if (props.composioSuggestionsEnabled === false || query.length < 2) return
+  if (composioCatalog.value.length === 0) {
+    void ensureComposioCatalogLoaded()
+    return
+  }
+  const hasLocalComposioMatch = rankComposioSuggestions(composioCatalog.value, query).length > 0
+  if (hasLocalComposioMatch) {
     void refreshComposioSuggestions()
   }
 })

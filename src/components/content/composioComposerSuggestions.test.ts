@@ -6,6 +6,7 @@ import {
   getComposioSuggestionQuery,
   mergeComposioConnectors,
   rankComposioSuggestions,
+  uploadComposioConnectorDocument,
 } from './composioComposerSuggestions'
 
 function connector(overrides: Partial<DirectoryComposioConnector>): DirectoryComposioConnector {
@@ -126,5 +127,24 @@ describe('buildComposioConnectorDocument', () => {
 
     expect(document).toContain('No connector description is available')
     expect(document).toContain('Minimal Tool (minimal_tool)')
+  })
+
+  it('uploads connector documentation through the shared attachment helper', async () => {
+    const row = connector({
+      slug: 'reddit',
+      name: 'Reddit',
+      description: 'Browse Reddit.',
+    })
+    const uploaded = await uploadComposioConnectorDocument(row, null, async (file) => {
+      expect(file.name).toBe('composio-reddit.md')
+      expect(await file.text()).toContain('# Reddit Composio Connector')
+      return '/tmp/composio-reddit.md'
+    })
+
+    expect(uploaded).toEqual({
+      label: 'composio-reddit.md',
+      path: '/tmp/composio-reddit.md',
+      fsPath: '/tmp/composio-reddit.md',
+    })
   })
 })

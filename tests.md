@@ -6223,6 +6223,35 @@ Composio panel connected connector `Try it!` starts a thread with connector docu
 
 ---
 
+### Composio simplification regression
+
+#### Feature/Change Name
+Composio directory logic extraction, lazy composer catalog loading, and shared connector-document upload helper.
+
+#### Prerequisites/Setup
+1. Start local Vite: `pnpm run dev --host 127.0.0.1 --port 4173`.
+2. Use light and dark themes.
+3. Keep connector suggestions enabled in Settings.
+
+#### Steps
+1. Open `http://127.0.0.1:4173/#/` and confirm the home startup profile does not include `/codex-api/composio/*` requests.
+2. Type `reddit` in the composer and confirm the connector catalog loads lazily, then the single Reddit suggestion appears.
+3. Click a connected or no-auth suggestion and confirm the generated `composio-*.md` attachment still appears.
+4. Open `http://127.0.0.1:4173/#/skills?tab=composio` and confirm the Composio tab still renders preview/authenticated cards.
+5. Open a connector detail, click `Load more`, use search, and verify the same behavior in dark theme.
+6. Click `Try it!` from a connected connector card or modal and confirm it uses the same generated docs attachment flow as the composer.
+
+#### Expected Results
+- The chat composer no longer statically imports the full hardcoded catalog during initial app startup.
+- Composer and Composio panel attachments are both generated through the shared upload helper.
+- The Composio tab behavior is unchanged after moving its state/actions into the composable.
+- Light and dark themes still render connector suggestions, cards, modals, and attachment chips correctly.
+
+#### Rollback/Cleanup
+- Remove generated `composio-*.md` chips or test threads if they are not needed.
+
+---
+
 ### Composio directory load and detail performance
 
 #### Feature/Change Name

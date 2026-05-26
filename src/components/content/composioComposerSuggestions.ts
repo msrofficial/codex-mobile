@@ -1,5 +1,7 @@
 import type { DirectoryComposioConnector, DirectoryComposioConnectorDetail } from '../../api/codexGateway'
 
+export type ComposioConnectorDocumentAttachment = { label: string; path: string; fsPath: string }
+
 export function mergeComposioConnectors(
   catalog: DirectoryComposioConnector[],
   liveRows: DirectoryComposioConnector[],
@@ -108,6 +110,22 @@ function formatComposioList(items: string[]): string {
 
 export function composioConnectorDocumentFileName(connector: DirectoryComposioConnector): string {
   return `composio-${sanitizeComposioFilePart(connector.slug || connector.name)}.md`
+}
+
+export async function uploadComposioConnectorDocument(
+  connector: DirectoryComposioConnector,
+  detail: DirectoryComposioConnectorDetail | null | undefined,
+  uploadFile: (file: File) => Promise<string | null>,
+): Promise<ComposioConnectorDocumentAttachment | null> {
+  const fileName = composioConnectorDocumentFileName(connector)
+  const document = buildComposioConnectorDocument(connector, detail)
+  const file = new File([document], fileName, {
+    type: 'text/markdown',
+    lastModified: Date.now(),
+  })
+  const serverPath = await uploadFile(file)
+  if (!serverPath) return null
+  return { label: fileName, path: serverPath, fsPath: serverPath }
 }
 
 export function buildComposioConnectorDocument(
