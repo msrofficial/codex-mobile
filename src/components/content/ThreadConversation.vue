@@ -5,7 +5,6 @@
     <p
       v-else-if="messages.length === 0 && pendingRequests.length === 0 && !liveOverlay"
       class="conversation-empty"
-import { sanitizeHtml } from '../../utils/sanitizeHtml'
     >
       No messages in this thread yet.
     </p>
@@ -924,6 +923,7 @@ import { updateThreadFileChanges } from '../../api/codexGateway'
 import { useFeedbackDiagnostics } from '../../composables/useFeedbackDiagnostics'
 import { useMobile } from '../../composables/useMobile'
 import { copyTextToClipboard, copyTextWithSelectionFallback } from '../../utils/clipboard'
+import { sanitizeHtml } from '../../utils/sanitizeHtml'
 
 import IconTablerArrowBackUp from '../icons/IconTablerArrowBackUp.vue'
 import IconTablerArrowUp from '../icons/IconTablerArrowUp.vue'
